@@ -443,7 +443,7 @@ export function LoginView() {
     e.preventDefault();
     const result = await signIn(email, password);
     if (result.success) {
-      // Navigate to home
+      // setCurrentView to home
     }
   };
   

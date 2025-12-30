@@ -127,7 +127,7 @@ if (currentView === 'sellerdashboard') {
     <ErrorBoundary>
       <Suspense fallback={<LoadingScreen />}>
         <SellerPlatform
-          onNavigateBack={() => setCurrentView('shop')}
+          onNavigateBack={() => navigate('shop')}
         />
       </Suspense>
     </ErrorBoundary>
@@ -314,7 +314,7 @@ Enhanced Seller Dashboard
 // Route to seller platform
 <MithasShopApp
   onNavigateToSellerDashboard={() =>
-    setCurrentView("sellerdashboard")
+    navigate("sellerdashboard")
   }
 />
 ```

@@ -13,7 +13,7 @@ interface ChatScreenProps {
 
 export function ChatScreen({ onNavigateHome, initialTab = 'contacts' }: ChatScreenProps) {
   const [currentTab, setCurrentTab] = useState<ChatTab>(initialTab);
-  const [currentView, setCurrentView] = useState<'list' | 'chat'>('list');
+  const [currentView, navigate] = useState<'list' | 'chat'>('list');
   const [currentChatUser, setCurrentChatUser] = useState<ChatUser | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
@@ -55,16 +55,16 @@ export function ChatScreen({ onNavigateHome, initialTab = 'contacts' }: ChatScre
 
   const handleTabSwitch = (id: ChatTab) => {
     setCurrentTab(id);
-    setCurrentView('list');
+    navigate('list');
   };
 
   const handleOpenChat = (user: ChatUser) => {
     setCurrentChatUser(user);
-    setCurrentView('chat');
+    navigate('chat');
   };
 
   const handleBackToList = () => {
-    setCurrentView('list');
+    navigate('list');
     setCurrentChatUser(null);
   };
 

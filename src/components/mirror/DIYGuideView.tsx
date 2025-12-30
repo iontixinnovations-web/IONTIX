@@ -10,7 +10,7 @@ interface DIYGuideViewProps {
   language: Language;
   onBackToMirror: () => void;
   onLanguageChange: (lang: Language) => void;
-  onNavigateToShop: (category: ShopCategory) => void;
+  onsetCurrentViewToShop: (category: ShopCategory) => void;
 }
 
 export function DIYGuideView({
@@ -19,7 +19,7 @@ export function DIYGuideView({
   language,
   onBackToMirror,
   onLanguageChange,
-  onNavigateToShop,
+  onsetCurrentViewToShop,
 }: DIYGuideViewProps) {
   const [isTtsLoading, setIsTtsLoading] = useState(false);
   const currentLook = LOOKS_DATA[mode][lookIndex];
@@ -107,7 +107,7 @@ export function DIYGuideView({
             </h3>
             <p className="text-gray-600 ml-8">{step.detail}</p>
             <button
-              onClick={() => onNavigateToShop('Makeup')}
+              onClick={() => onsetCurrentViewToShop('Makeup')}
               className="mt-3 text-xs text-purple-600 hover:underline flex items-center"
             >
               {language === 'ta' ? 'இந்த படிக்கு பொருட்களை வாங்கவும்' : 'Shop items for this step'}

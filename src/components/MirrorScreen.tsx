@@ -44,7 +44,7 @@ interface MirrorScreenProps {
 }
 
 export function MirrorScreen({ onNavigateHome }: MirrorScreenProps) {
-  const [currentView, setCurrentView] = useState<MirrorViewType>('home');
+  const [currentView, navigate] = useState<MirrorViewType>('home');
   const [currentMode, setCurrentMode] = useState<Mode>('Office/College');
   const [currentLookIndex, setCurrentLookIndex] = useState(0);
   const [customizations, setCustomizations] = useState<Customizations>({
@@ -62,7 +62,7 @@ export function MirrorScreen({ onNavigateHome }: MirrorScreenProps) {
 
   const handleModeSelect = (mode: Mode) => {
     setCurrentMode(mode);
-    setCurrentView('mirror');
+    navigate('mirror');
     setCustomizations({ lipstick: null, eyeliner: null, blush: null });
     setCurrentLookIndex(0);
     toast.success(`Camera ON. AI analyzing your face for ${mode}!`);
@@ -72,14 +72,14 @@ export function MirrorScreen({ onNavigateHome }: MirrorScreenProps) {
     setShowOptionsModal(false);
     
     if (action === 'Select Look' || action === 'Buy Combo Kit') {
-      setCurrentView('shop');
+      navigate('shop');
       setShopCategory('Recommended');
       toast.success('🛍️ Showing the full look bundle in the Glow Shop!');
     } else if (action === 'Start Reels Creator') {
-      setCurrentView('reelCreator');
+      navigate('reelCreator');
       toast.success('Entering the Before/After Reels Creator!');
     } else if (action === 'Do It Yourself') {
-      setCurrentView('diy');
+      navigate('diy');
       setLanguage('en');
       toast.success('Generating step-by-step instructions...');
     } else if (action === 'Book Artist') {
@@ -88,12 +88,12 @@ export function MirrorScreen({ onNavigateHome }: MirrorScreenProps) {
   };
 
   const handleBackToHome = () => {
-    setCurrentView('home');
+    navigate('home');
     setCustomizations({ lipstick: null, eyeliner: null, blush: null });
   };
 
   const handleBackToMirror = () => {
-    setCurrentView('mirror');
+    navigate('mirror');
     toast.success('Returning to Live AR Mirror...');
   };
 
@@ -147,7 +147,7 @@ export function MirrorScreen({ onNavigateHome }: MirrorScreenProps) {
           onLanguageChange={setLanguage}
           onNavigateToShop={(category) => {
             setShopCategory(category);
-            setCurrentView('shop');
+            navigate('shop');
           }}
         />
       )}
@@ -197,7 +197,7 @@ export function MirrorScreen({ onNavigateHome }: MirrorScreenProps) {
         onCustomization={handleCustomization}
         onNavigateToShop={(category) => {
           setShopCategory(category);
-          setCurrentView('shop');
+          navigate('shop');
           setShowChatModal(false);
         }}
       />

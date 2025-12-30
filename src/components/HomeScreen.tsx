@@ -9,16 +9,24 @@ import { SpotlightModal } from './SpotlightModal';
 import { toast } from 'sonner@2.0.3';
 
 interface HomeScreenProps {
-  onNavigateToMirror?: () => void;
-  onNavigateToPhotoshoot?: () => void;
-  onNavigateToChat?: () => void;
-  onNavigateToReels?: () => void;
-  onNavigateToShop?: () => void;
-  onNavigateToInnovators?: () => void;
-  onNavigateToProfile?: () => void;
+  onNavigateToMirror: () => void;
+  onNavigateToPhotoshoot: () => void;
+  onNavigateToChat: () => void;
+  onNavigateToReels: () => void;
+  onNavigateToShop: () => void;
+  onNavigateToInnovators: () => void;
+  onNavigateToProfile: () => void;
 }
 
-export function HomeScreen({ onNavigateToMirror, onNavigateToPhotoshoot, onNavigateToChat, onNavigateToReels, onNavigateToShop, onNavigateToInnovators, onNavigateToProfile }: HomeScreenProps) {
+export function HomeScreen({
+  onNavigateToMirror,
+  onNavigateToPhotoshoot,
+  onNavigateToChat,
+  onNavigateToReels,
+  onNavigateToShop,
+  onNavigateToInnovators,
+  onNavigateToProfile
+}: HomeScreenProps) {
   const [showFeatureModal, setShowFeatureModal] = useState(false);
   const [showSpotlightModal, setShowSpotlightModal] = useState(false);
   const [spotlightTitle, setSpotlightTitle] = useState('');
@@ -63,7 +71,7 @@ export function HomeScreen({ onNavigateToMirror, onNavigateToPhotoshoot, onNavig
 
   const loadMoreContent = () => {
     if (isLoading) return;
-    setIsLoading(true);
+    
 
     setTimeout(() => {
       const newCards = [feedCards.length + 1, feedCards.length + 2, feedCards.length + 3];
@@ -186,16 +194,21 @@ export function HomeScreen({ onNavigateToMirror, onNavigateToPhotoshoot, onNavig
       </div>
 
       {/* Bottom Navigation */}
+      
       <BottomNav 
         onNavigateToMirror={onNavigateToMirror}
-        onNavigateToChat={onNavigateToChat}
-        onNavigateToReels={onNavigateToReels}
-        onNavigateToShop={onNavigateToShop}
-        onNavigateToHome={() => {
+          onNavigateToChat={onNavigateToChat}
+            onNavigateToReels={onNavigateToReels}
+              onNavigateToShop={onNavigateToShop}
+                onNavigateToHome={() => {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      />
+        onsetCurrentViewToHome={() => {
           // Already on home, just scroll to top
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-      />
+      
 
       {/* Modals */}
       <FeatureModal

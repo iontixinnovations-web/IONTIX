@@ -12,7 +12,7 @@ const EnhancedSellerDashboard = lazy(() => import('./seller/EnhancedSellerDashbo
 type SellerView = 'intro' | 'setup' | 'verification' | 'dashboard' | 'addProduct' | 'inventory' | 'orders' | 'analytics' | 'payouts' | 'promotions' | 'growthGame' | 'settings';
 
 interface SellerPlatformProps {
-  onNavigateBack?: () => void;
+  onsetCurrentViewBack?: () => void;
 }
 
 // Loading component
@@ -153,7 +153,7 @@ export function SellerPlatform({ onNavigateBack }: SellerPlatformProps) {
   const [activeView, setActiveView] = useState<SellerView>('intro');
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
-  const navigate = (view: SellerView) => {
+  const setCurrentView = (view: SellerView) => {
     setActiveView(view);
     console.log(`Seller Platform: Navigating to ${view}`);
   };
@@ -183,22 +183,22 @@ export function SellerPlatform({ onNavigateBack }: SellerPlatformProps) {
         <div className="pb-20">
           <Suspense fallback={<LoadingScreen />}>
             {activeView === 'intro' && (
-              <SellerIntroScreen onGetStarted={() => navigate('setup')} />
+              <SellerIntroScreen onGetStarted={() => setCurrentView('setup')} />
             )}
             {activeView === 'setup' && (
-              <SellerSetupScreen onComplete={() => navigate('verification')} />
+              <SellerSetupScreen onComplete={() => setCurrentView('verification')} />
             )}
             {activeView === 'verification' && (
-              <SellerVerificationScreen onComplete={() => navigate('dashboard')} />
+              <SellerVerificationScreen onComplete={() => setCurrentView('dashboard')} />
             )}
             {activeView === 'dashboard' && (
               <EnhancedSellerDashboard
-                onNavigateToAddProduct={() => navigate('addProduct')}
-                onNavigateToOrders={() => navigate('orders')}
-                onNavigateToAnalytics={() => navigate('analytics')}
-                onNavigateToPromotions={() => navigate('promotions')}
-                onNavigateToPayouts={() => navigate('payouts')}
-                onNavigateToGrowthGame={() => navigate('growthGame')}
+                onNavigateToAddProduct={() => setCurrentView('addProduct')}
+                onNavigateToOrders={() => setCurrentView('orders')}
+                onNavigateToAnalytics={() => setCurrentView('analytics')}
+                onNavigateToPromotions={() => setCurrentView('promotions')}
+                onNavigateToPayouts={() => setCurrentView('payouts')}
+                onNavigateToGrowthGame={() => setCurrentView('growthGame')}
               />
             )}
             {activeView === 'addProduct' && (
@@ -253,7 +253,7 @@ export function SellerPlatform({ onNavigateBack }: SellerPlatformProps) {
         </div>
 
         {/* Bottom Navigation */}
-        <SellerBottomNav activeView={activeView} onNavigate={navigate} />
+        <SellerBottomNav activeView={activeView} onNavigate={setCurrentView} />
 
         {/* AI Glow Assistant Button */}
         {showAssistantButton && (

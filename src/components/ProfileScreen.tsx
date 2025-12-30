@@ -8,6 +8,19 @@ import {
   Bell, Download, Globe
 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
+import { useAuthStore } from "../lib/store";
+const EMPTY_PROFILE = {
+    name: "",
+      email: "",
+        dob: "",
+          city: "",
+            language: "",
+              profileCompleted: false,
+                wallet: {
+                    points: 0,
+                      },
+                      };
+
 
 // --- Configuration and Mock Data ---
 
@@ -991,12 +1004,19 @@ interface ProfileScreenProps {
 }
 
 export function ProfileScreen({ onNavigateHome }: ProfileScreenProps) {
+  const storeProfile = useAuthStore((state) => state.profile);
   const [profile, setProfile] = useState(() => {
-      const savedProfile = localStorage.getItem('glowProfileData');
-      return savedProfile ? JSON.parse(savedProfile) : initialProfileData;
-  });
+  const savedProfile = localStorage.getItem("glowProfileData");
+  return savedProfile ? JSON.parse(savedProfile) : EMPTY_PROFILE;
+});
   const [showModal, setShowModal] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+useEffect(() => {
+  if (storeProfile) {
+      setProfile(storeProfile);
+        }
+        }, [storeProfile]);
 
   useEffect(() => {
       localStorage.setItem('glowProfileData', JSON.stringify(profile));
@@ -1014,7 +1034,7 @@ export function ProfileScreen({ onNavigateHome }: ProfileScreenProps) {
   }, []);
 
   const { badgeLevel, glowRank, glowScore } = useMemo(() => {
-    const pts = profile.wallet.points;
+    const pts = profile?.wallet?.points ?? 0;
     const badge = (() => {
         if (pts >= 5000) return 'Diamond';
         if (pts >= 2500) return 'Gold';

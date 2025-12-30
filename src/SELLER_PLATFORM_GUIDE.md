@@ -160,7 +160,7 @@ if (currentView === 'sellerdashboard') {
     <ErrorBoundary>
       <Suspense fallback={<LoadingScreen />}>
         <SellerPlatform
-          onNavigateBack={() => setCurrentView('shop')}
+          onNavigateBack={() => navigate('shop')}
         />
       </Suspense>
     </ErrorBoundary>

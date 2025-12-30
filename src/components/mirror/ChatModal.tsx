@@ -6,7 +6,7 @@ interface ChatModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCustomization: (type: keyof Customizations, value: string) => void;
-  onNavigateToShop: (category: ShopCategory) => void;
+  onsetCurrentViewToShop: (category: ShopCategory) => void;
 }
 
 interface ChatMessage {
@@ -14,7 +14,7 @@ interface ChatMessage {
   content: string;
 }
 
-export function ChatModal({ isOpen, onClose, onCustomization, onNavigateToShop }: ChatModalProps) {
+export function ChatModal({ isOpen, onClose, onCustomization, onsetCurrentViewToShop }: ChatModalProps) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -74,7 +74,7 @@ export function ChatModal({ isOpen, onClose, onCustomization, onNavigateToShop }
 
       } else if (lowerCommand.includes('skincare') || lowerCommand.includes('serum')) {
         aiResponse = 'Need skincare? Showing you the recommended **Hydra-Boost Serum** in the shop section.';
-        onNavigateToShop('Skincare');
+        onsetCurrentViewToShop('Skincare');
         actionTaken = true;
       } else {
         aiResponse = `I understood the command "${command.substring(0, 20)}...", but unfortunately, I cannot fully execute it in this demo. Please try modifying an eyeliner, lipstick, or blush color.`;

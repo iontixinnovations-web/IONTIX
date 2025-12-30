@@ -24,7 +24,7 @@ export function useProducts(options?: {
 
   const fetchProducts = async () => {
     try {
-      setIsLoading(true);
+      
       setError(null);
 
       let query = supabase
@@ -95,7 +95,7 @@ export function useProduct(productId: string) {
 
   const fetchProduct = async () => {
     try {
-      setIsLoading(true);
+      
       setError(null);
 
       const { data, error } = await supabase
@@ -154,7 +154,7 @@ export function useSearchProducts() {
     }
 
     try {
-      setIsLoading(true);
+      
       setError(null);
 
       const { data, error } = await supabase
@@ -196,7 +196,7 @@ export function useRecommendations(productId?: string) {
 
   const fetchRecommendations = async () => {
     try {
-      setIsLoading(true);
+      
 
       // Simple recommendation logic: same category or featured products
       let query = supabase

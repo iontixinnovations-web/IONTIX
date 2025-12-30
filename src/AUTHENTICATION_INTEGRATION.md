@@ -54,12 +54,12 @@ function App() {
     if (isAuthenticated && user) {
       // User logged in - navigate to home
       if (currentView === "register" || currentView === "login" || currentView === "otp") {
-        setCurrentView("home");
+        navigate("home");
       }
     } else if (!isAuthenticated && !authLoading) {
       // User logged out - navigate to register
       if (currentView !== "register" && currentView !== "login" && currentView !== "otp") {
-        setCurrentView("register");
+        navigate("register");
       }
     }
   }, [isAuthenticated, user, authLoading]);
@@ -78,16 +78,16 @@ function App() {
         {/* Render views based on currentView */}
         {currentView === "register" && (
           <RegisterView
-            onRegisterSuccess={() => setCurrentView("profileSetup")}
-            onNavigateToLogin={() => setCurrentView("login")}
+            onRegisterSuccess={() => navigate("profileSetup")}
+            onNavigateToLogin={() => navigate("login")}
           />
         )}
         
         {currentView === "login" && (
           <LoginView
-            onLoginSuccess={() => setCurrentView("home")}
-            onNavigateToRegister={() => setCurrentView("register")}
-            onNavigateToOTP={() => setCurrentView("otp")}
+            onLoginSuccess={() => navigate("home")}
+            onNavigateToRegister={() => navigate("register")}
+            onNavigateToOTP={() => navigate("otp")}
           />
         )}
         

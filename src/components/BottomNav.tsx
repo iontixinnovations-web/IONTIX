@@ -5,7 +5,7 @@ interface BottomNavProps {
   onNavigateToMirror?: () => void;
   onNavigateToChat?: () => void;
   onNavigateToReels?: () => void;
-  onNavigateToShop?: () => void;
+  onsetCurrentViewToShop?: () => void;
   onNavigateToHome?: () => void;
 }
 

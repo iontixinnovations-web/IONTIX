@@ -24,13 +24,17 @@ interface AuthState {
   session: any | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  profileCompleted: boolean;
+
   
   // Actions
   setUser: (user: Profile | null) => void;
   setSession: (session: any | null) => void;
   setLoading: (loading: boolean) => void;
   logout: () => void;
+  setProfileCompleted: (value: boolean) => void;
 }
+                                       
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -38,20 +42,47 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       session: null,
       isAuthenticated: false,
-      isLoading: true,
-      
-      setUser: (user) => set({ user, isAuthenticated: !!user }),
-      setSession: (session) => set({ session }),
-      setLoading: (loading) => set({ isLoading: loading }),
-      logout: () => set({ user: null, session: null, isAuthenticated: false }),
+      isLoading: false,
+      profileCompleted: false,
+      profile: null as any,
+
+      setProfile: (profile: any) => set({ profile }),
+
+      setUser: (user) =>
+        set({
+          user,
+          isAuthenticated: !!user,
+        }),
+
+      setSession: (session) =>
+        set({
+          session,
+          user: session?.user ?? null,
+          isAuthenticated: !!session?.user,
+        }),
+
+      setLoading: (loading) =>
+        set({ isLoading: loading }),
+
+      setProfileCompleted: (value) =>
+        set({ profileCompleted: value }),
+
+      logout: () =>
+        set({
+          user: null,
+          session: null,
+          isAuthenticated: false,
+          profileCompleted: false,
+        }),
     }),
     {
-      name: 'mithas-auth',
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
+      name: "mithas-auth",
+
+      // ✅ THIS LINE FIXES WHITE SCREEN
+      storage:
+        typeof window !== "undefined"
+          ? createJSONStorage(() => localStorage)
+          : undefined,
     }
   )
 );

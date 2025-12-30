@@ -4,7 +4,7 @@ import { useAuth } from '../lib/hooks/useAuth';
 import { toast } from 'sonner@2.0.3';
 
 interface LoginViewProps {
-  onLogin: () => void;
+  onLogin: (data:any) => void;
 }
 
 export function LoginView({ onLogin }: LoginViewProps) {
@@ -56,14 +56,14 @@ export function LoginView({ onLogin }: LoginViewProps) {
       
       if (result.success) {
         toast.success('Welcome back to MITHAS Glow! ✨');
-        onLogin();
+        onLogin(result.data);
       }
     } else {
       // Phone OTP login
       const result = await signInWithPhone(phone);
       
       if (result.success) {
-        // OTP sent successfully, navigate to OTP view will be handled by App.tsx
+        // OTP sent successfully, setCurrentView to OTP view will be handled by App.tsx
         // You might want to pass the phone number back to parent
         toast.success('OTP sent to your phone!');
       }

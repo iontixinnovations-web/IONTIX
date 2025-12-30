@@ -127,7 +127,7 @@ const { user, isAuthenticated, isLoading } = useAuth();
     
 5b. PHONE PATH:
     - Supabase sends OTP
-    - Navigate to OTPView
+    - setCurrentView to OTPView
     - User enters OTP
     - Supabase verifies
     - Profile created
@@ -617,7 +617,7 @@ function App() {
 
   if (!isAuthenticated && 
       ["home", "mirror", "shop", "reels"].includes(currentView)) {
-    setCurrentView("register");
+    navigate("register");
   }
 
   // ... rest of app

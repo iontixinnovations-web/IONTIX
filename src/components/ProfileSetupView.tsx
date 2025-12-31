@@ -1,4 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+
+const updateProfile = async (data: any) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("User session not found");
+
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({
+      id: user.id,
+      ...data,
+      profile_completed: true,
+      updated_at: new Date().toISOString(),
+    });
+
+  if (error) throw error;
+};
+
 import { 
   Camera, Sparkles, AtSign, MapPin, 
   ChevronRight, Heart, Palette, Scissors, 
@@ -27,6 +45,8 @@ interface ProfileData {
   glowPoints: number;
   language: 'en' | 'ta';
   profileCompleted: boolean;
+  phone?: string;   // ✅ ADD THIS
+
 }
 
 // ProfileSetupView.tsx - Line 38
@@ -62,16 +82,6 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
       } catch (e) { console.error("Parse error"); }
     }
   }, [safeOnComplete, storageKey]);
-
-  useEffect(() => {
-    if (isLoading) {
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-        safeOnComplete();
-      }, 2500);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, safeOnComplete]);
 
   const t = {
     en: {
@@ -166,19 +176,41 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
         <textarea placeholder="Short Bio..." className="w-full p-4 bg-gray-50 rounded-2xl outline-none h-20 resize-none text-sm font-medium" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} />
       </div>
 
-      <button onClick={() => {
+      <button onClick={async () => {
         if(!profile.username || !profile.city || !profile.dob) return setError(t[lang].error);
         if(profile.accountType === 'pro') {
           setStep(3);
-          } else { 
-            const finalProfile = {...profile, profileCompleted: true};
-              localStorage.setItem(storageKey, JSON.stringify(finalProfile)); 
-                setIsLoading(true);
-                  // This sends data back to App.tsx to unlock Home Screen
-                    setTimeout(() => safeOnComplete(finalProfile), 2500); 
-                    }
+          return;
+        }
+          setIsLoading(true);
 
-      }} className="w-full mt-6 py-4 bg-pink-500 text-white font-black rounded-2xl shadow-lg active:scale-95 transition-all text-lg shadow-pink-100 uppercase italic tracking-tighter">
+try {
+  await updateProfile({
+     username: profile.username,
+      full_name: profile.displayName,
+      display_name: profile.displayName,
+      bio: profile.bio,
+      city: profile.city,
+      date_of_birth: profile.dob,
+    });
+
+  const finalProfile = { ...profile, profileCompleted: true };
+  localStorage.setItem(storageKey, JSON.stringify(finalProfile));
+  setIsLoading(false);
+  safeOnComplete(finalProfile);
+
+} catch (err: any) {
+    console.error("Database Error:", err.message);
+    setError("Save failed: " + err.message);
+
+  }  finally {
+      setIsLoading(false); // ✅ HERE ONLY
+      }
+  
+
+  }} 
+ className="w-full mt-6 py-4 bg-pink-500 text-white font-black rounded-2xl shadow-lg active:scale-95 transition-all text-lg shadow-pink-100 uppercase italic tracking-tighter"
+ >
         {profile.accountType === 'pro' ? t[lang].next : t[lang].start}
       </button>
       <button onClick={() => setStep(1)} className="w-full mt-2 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Back</button>
@@ -200,13 +232,36 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
         <div className="relative"><LinkIcon className="absolute left-3 top-4 w-4 h-4 text-gray-400" /><input placeholder="Portfolio Link" className="w-full pl-10 p-4 bg-gray-50 rounded-2xl outline-none text-sm font-medium" value={profile.portfolioLink} onChange={e => setProfile({...profile, portfolioLink: e.target.value})}/></div>
       </div>
 
-      <button onClick={() => {
+      <button onClick={async () => {
         if(!profile.businessName) return setError(t[lang].bizError);
-const finalBusinessProfile = {...profile, profileCompleted: true};
-localStorage.setItem(storageKey, JSON.stringify(finalBusinessProfile));
 setIsLoading(true);
-// This sends business profile data back to App.tsx
-setTimeout(() => safeOnComplete(finalBusinessProfile), 2500);
+
+try {
+  await updateProfile({
+    username: profile.username,
+    full_name: profile.displayName,
+    bio: profile.bio,
+    date_of_birth: profile.dob,
+    city: profile.city,
+    business_name: profile.businessName,
+    portfolio_link: profile.portfolioLink,
+    industry: profile.industry,
+    business_type: profile.businessType,
+    experience: profile.experience,
+    operating_hours: profile.operatingHours,
+  });
+
+  const finalBusinessProfile = { ...profile, profileCompleted: true };
+  localStorage.setItem(storageKey, JSON.stringify(finalBusinessProfile));
+  safeOnComplete(finalBusinessProfile);
+
+} catch (err) {
+  setError("Business profile save failed");
+  setIsLoading(false);
+} finally {
+      setIsLoading(false); // ✅ HERE ONLY
+      }
+   
 
       }} className="w-full mt-6 py-4 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-black rounded-2xl shadow-xl active:scale-95 flex items-center justify-center space-x-2 text-lg uppercase italic tracking-tighter">
         <span>{t[lang].activate}</span><CheckCircle2 className="w-5 h-5" />
@@ -232,6 +287,25 @@ setTimeout(() => safeOnComplete(finalBusinessProfile), 2500);
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

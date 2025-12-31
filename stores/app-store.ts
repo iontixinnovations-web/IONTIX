@@ -41,13 +41,13 @@ interface AppState {
   setSidebarOpen: (open: boolean) => void
   setMobileMenuOpen: (open: boolean) => void
   setTheme: (theme: "light" | "dark" | "system") => void
-  setLoading: (loading: boolean, message?: string) => void
   setUnreadNotifications: (count: number) => void
   setUnreadMessages: (count: number) => void
   incrementUnreadNotifications: () => void
   incrementUnreadMessages: () => void
   decrementUnreadNotifications: () => void
   decrementUnreadMessages: () => void
+  setLoading: (loading: boolean, message?: string | null) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -84,7 +84,11 @@ export const useAppStore = create<AppState>()(
         setMobileMenuOpen: (mobileMenuOpen) => set({ mobileMenuOpen }),
         setTheme: (theme) => set({ theme }),
 
-        setLoading: (isLoading, loadingMessage = null) => set({ isLoading, loadingMessage }),
+        setLoading: (isLoading, message = null) =>
+  set({
+    isLoading,
+    loadingMessage: message,
+  }),
 
         setUnreadNotifications: (unreadNotifications) => set({ unreadNotifications }),
         setUnreadMessages: (unreadMessages) => set({ unreadMessages }),

@@ -122,18 +122,14 @@ const authStore = useAuthStore();
 const profileCompleted = authStore.profileCompleted;
 const user = authStore.user;
 const isAuthenticated = authStore.isAuthenticated;
-const authLoading = false;
+const authLoading = false
 
-// Initialize auth in background (doesn't block UI)
 
-const [currentView, setCurrentView] = useState<View>(() =>
-  getInitialView(isAuthenticated, profileCompleted)
-  );
-
+const [isInitialLoading, setIsInitialLoading] = useState(true);
+const [currentView, setCurrentView] = useState<View>("register");
 const [identifier, setIdentifier] = useState("");
-const [identifierType, setIdentifierType] = useState<"email" | "phone">(
-"email"
-);
+const [identifierType, setIdentifierType] = useState<"email" | "phone">("email");
+
 const [chatInitialTab, setChatInitialTab] = useState<
 "contacts" | "messenger" | "artist"
 
@@ -144,69 +140,61 @@ const navigate = (view: View) => {
   window.history.pushState({ view }, "");
 };
 useEffect(() => {
-  if (authLoading) return;
-  
-  // கண்டிஷனை சிம்பிளா மாத்துங்க
-  if (!isAuthenticated && currentView !== "register" && currentView !== "login" && currentView !== "otp") {
-    setCurrentView("register");
-  }
-}, [isAuthenticated, currentView]);
+  const initApp = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // செஷன் இருந்தால் மட்டும் டேட்டாபேஸில் செக் செய்
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('profile_completed')
+          .eq('id', session.user.id)
+          .single();
 
-
-useEffect(() => {
-  // Initial history entry
-  window.history.replaceState({ view: currentView }, "");
-
-  const onBack = (event: PopStateEvent) => {
-    if (event.state?.view) {
-      navigate(event.state.view);
-    } else {
-      // Home reached → allow app exit
-      window.history.go(-1);
+        if (profile?.profile_completed) {
+          authStore.setProfileCompleted(true);
+          setCurrentView('home');
+        } else {
+          authStore.setProfileCompleted(false);
+          setCurrentView('profile');
+        }
+      } else {
+        // செஷன் இல்லை என்றால் கண்டிப்பாக ரிஜிஸ்டர் பக்கம்
+        setCurrentView('register');
+      }
+    } catch (error) {
+      console.error("Init error:", error);
+      setCurrentView('register');
+    } finally {
+      // இது நடந்தால் மட்டுமே ஸ்கிரீன் மாறும்
+      setIsInitialLoading(false);
     }
   };
 
-  window.addEventListener("popstate", onBack);
-
-  return () => {
-    window.removeEventListener("popstate", onBack);
-  };
+  initApp();
 }, []);
 
-
-// ✅ Persist current view across refresh
 useEffect(() => {
+  if (isInitialLoading) return;
+
   if (isAuthenticated) {
-    if (currentView !== "profile") {
-      localStorage.setItem("currentView", currentView);
+    if (!profileCompleted) {
+      if (currentView !== "profile") setCurrentView("profile");
+    } else {
+      if (["register", "login", "otp", "profile"].includes(currentView)) {
+        setCurrentView("home");
+      }
     }
   } else {
-    localStorage.removeItem("currentView");
-  }
-}, [currentView, isAuthenticated]);
-useEffect(() => {
-  if (!isAuthenticated) {
     if (!["login", "register", "otp"].includes(currentView)) {
-      navigate("register");
-    }
-    return;
-  }
-
-  if (isAuthenticated && !profileCompleted) {
-      // 🔒 allow profile screen to render fully
-        if (currentView !== "profile") {
-            navigate("profile");
-              }
-                return;
-                }
-  
-
-  if (isAuthenticated && profileCompleted) {
-    if (["register", "login", "otp", "profile"].includes(currentView)) {
-      navigate("home");
+      setCurrentView("register");
     }
   }
-}, [isAuthenticated, profileCompleted, currentView]);
+}, [isAuthenticated, profileCompleted, currentView, isInitialLoading]);
+
+
+
 
 useEffect(() => {
 // Optimized theme management
@@ -237,45 +225,92 @@ navigate("otp");
 };
 
 const handleVerifyOTP = () => {
-toast.success("Verification successful! Now, set up your profile.");
-navigate("profile");
+  toast.success("Verification successful! Now, set up your profile.");
+  
+  // 1. ப்ரொபைல் இன்னும் முடியலைன்னு செட் பண்றோம்
+  authStore.setProfileCompleted(false); 
+  
+  // 2. நேராக ப்ரொபைல் ஸ்கிரீனுக்கு அனுப்புறோம்
+  setCurrentView("profile");
 };
+
+
 
 const handleResendOTP = () => {
     toast.success(`OTP resent to ${identifier}!`);
-    };
+}
 
-const handleProfileComplete = async () => {
-  toast.success("Welcome to MITHAS GLOW! ✨");
+const handleProfileComplete = async (profileData: any) => {
+  // 1. setIsLoading இருக்கிறதா என்று செக் செய்கிறோம்
+  if (typeof setIsLoading !== 'undefined') setIsLoading(true);
 
-  // ✅ UPDATE SUPABASE USER METADATA
-  await supabase.auth.updateUser({
-    data: { profile_completed: true },
-  });
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("User not found!");
+      return;
+    }
 
-  // ✅ UPDATE ZUSTAND
-  authStore.setProfileCompleted(true);
+    // 2. டேட்டாபேஸில் சேமிக்கிறோம் (இங்கே 'full_name' மற்றும் 'username' முக்கியம்)
+    const { error: upsertError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        email: user.email,
+        full_name: profileData?.displayName || '',
+        username: profileData?.username || `user_${user.id.slice(0, 5)}`,
+        city: profileData?.city || '',
+        bio: profileData?.bio || '',
+        date_of_birth: profileData?.dob || null,
+        account_type: profileData?.accountType || 'normal',
+        profile_completed: true, // அடுத்த முறை லாகின் பண்ணும்போது இதுதான் உதவும்
+        updated_at: new Date().toISOString(),
+      });
 
-  navigate("home");
-};
+    if (upsertError) throw upsertError;
 
-const handleLogin = (userData: any) => {
-  authStore.setSession(userData.session);
-  const completed =
-    userData.user?.user_metadata?.profile_completed ?? false;
+    // 3. யூசர் மெட்டாடேட்டாவிலும் அப்டேட் செய்கிறோம்
+    await supabase.auth.updateUser({
+      data: { profile_completed: true }
+    });
 
-  authStore.setProfileCompleted(completed);
+    // 4. வெற்றிகரமாக முடிந்தால் மட்டுமே ஹோம் ஸ்கிரீன் போகும்
+    authStore.setProfileCompleted(true);
+    setCurrentView("home");
+    toast.success("Profile saved perfectly! ✨");
 
-  if (completed) {
-    navigate("home");
-  } else {
-    navigate("profile");
+  } catch (error: any) {
+    console.error("Critical Save Error:", error.message);
+    toast.error("Save Error: " + error.message);
+  } finally {
+    if (typeof setIsLoading !== 'undefined') setIsLoading(false);
   }
 };
-              
 
+
+
+
+
+const handleLogin = async (userData: any) => {
+  authStore.setSession(userData.session);
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('profile_completed')
+    .eq('id', userData.user.id)
+    .single();
+
+  if (profile?.profile_completed) {
+    authStore.setProfileCompleted(true);
+    setCurrentView("home");
+  } else {
+    authStore.setProfileCompleted(false);
+    setCurrentView("profile");
+  }
+};
 
 // Render user profile if view is 'userprofile'
+if (isInitialLoading) return <LoadingScreen />;
 if (currentView === "userprofile") {
 return (
 <AuthGuard onUnauthenticated={() => navigate("register")}>
@@ -493,19 +528,8 @@ Skip to Home
   />    
 )}    
 {currentView === "profile" && (
-    <ProfileSetupView
-        onComplete={(profile) => {
-              // 1️⃣ store update
-                    useAuthStore.getState().setProfile(profile);
-
-                          // 2️⃣ mark profile completed
-                                useAuthStore.getState().setProfileCompleted(true);
-
-                                      // 3️⃣ go to home
-                                            setCurrentView("home");
-                                                }}
-                                                  />
-                                                  )}
+  <ProfileSetupView onComplete={handleProfileComplete} />
+)}
 
 
   </div>    

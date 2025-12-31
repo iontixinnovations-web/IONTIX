@@ -68,36 +68,54 @@ export const useAuthStore = create<AuthState>()(
         user: null,
         supabaseUser: null,
         session: null,
-        isAuthenticated: false,
-        isLoading: true,
+        isAuthenticated: true,
+        isLoading: false,
         error: null,
 
         // Initialize auth state
         initialize: async () => {
-          set({ isLoading: true })
-          try {
-            const supabase = createClient()
-            const {
-              data: { session },
-            } = await supabase.auth.getSession()
+  set({ isLoading: true })
 
-            if (session?.user) {
-              // Fetch profile from Supabase
-              const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+  try {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
 
-              set({
-                session,
-                supabaseUser: session.user,
-                user: profile,
-                isAuthenticated: true,
-              })
-            }
-          } catch (error) {
-            console.error("[Auth] Initialize failed:", error)
-          } finally {
-            set({ isLoading: false })
-          }
-        },
+    if (!session?.user) {
+      // 🔥 VERY IMPORTANT
+      set({
+        user: null,
+        supabaseUser: null,
+        session: null,
+        isAuthenticated: false,
+      })
+      return
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", session.user.id)
+      .single()
+
+    set({
+      session,
+      supabaseUser: session.user,
+      user: profile,
+      isAuthenticated: true,
+    })
+
+  } catch (err) {
+    console.error("[Auth] Initialize failed:", err)
+    set({
+      user: null,
+      supabaseUser: null,
+      session: null,
+      isAuthenticated: false,
+    })
+  } finally {
+    set({ isLoading: false })
+  }
+},
 
         // Login with email/password
         login: async (email, password) => {
@@ -250,13 +268,12 @@ export const useAuthStore = create<AuthState>()(
       }),
       {
         name: "mithas-auth-store",
-        partialize: (state) => ({
+        partialize: () => ({}),
           // Only persist minimal auth state
           isAuthenticated: state.isAuthenticated,
         }),
-      },
-    ),
+    
     { name: "AuthStore" },
   ),
 )
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

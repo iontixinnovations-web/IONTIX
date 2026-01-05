@@ -20,7 +20,7 @@ async def search_users(
     result = await db.execute(
         select(User).where(
             (User.username.ilike(f"%{query}%")) |
-            (User.full_name.ilike(f"%{query}%"))
+            (User..ilike(f"%{query}%"))
         ).limit(20)
     )
     users = result.scalars().all()
@@ -65,7 +65,7 @@ async def get_user_public_profile(
     return {
         "id": user.id,
         "username": user.username,
-        "full_name": user.full_name,
+        "": user.,
         "avatar_url": user.avatar_url,
         "bio": user.bio,
         "is_artist": user.is_artist,

@@ -25,29 +25,45 @@ import {
   Package, Clock, Link as LinkIcon, Calendar, AlertCircle, ChevronDown
 } from 'lucide-react';
 
-interface ProfileData {
-  accountType: string;
-  industry: string;
-  profilePic: string | null;
-  displayName: string;
+interface ProfileInput {
   username: string;
-  bio: string;
-  gender: string;
-  dob: string;
-  businessName: string;
-  portfolioLink: string;
+  displayName: string;
+  bio?: string;
   city: string;
-  storeAddress: string;
-  specialties: string;
-  businessType: string;
-  experience: string;
-  operatingHours: string;
-  glowPoints: number;
-  language: 'en' | 'ta';
-  profileCompleted: boolean;
-  phone?: string;   // ✅ ADD THIS
+  dob: string;
 
+  businessName?: string;
+  portfolioLink?: string;
+  industry?: string;
+  businessType?: string;
+  experience?: string;
+  operatingHours?: string;
 }
+
+interface ProfileData {
+    accountType: string;
+      industry: string;
+        profilePic: string | null;
+          displayName: string;
+            username: string;
+              bio: string;
+                gender: string;
+                  dob: string;
+                    businessName: string;
+                      portfolioLink: string;
+                        city: string;
+                          storeAddress: string;
+                            specialties: string;
+                              businessType: string;
+                                experience: string;
+                                  operatingHours: string;
+                                    glowPoints: number;
+                                      language: 'en' | 'ta';
+                                        profileCompleted: boolean;
+                                          phone?: string;   // ✅ ADD THIS
+
+                                          }
+
 
 // ProfileSetupView.tsx - Line 38
 export default function ProfileSetupView({ onComplete, userEmail }: { onComplete?: (data: ProfileData) => void, userEmail?: string }) {
@@ -176,42 +192,34 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
         <textarea placeholder="Short Bio..." className="w-full p-4 bg-gray-50 rounded-2xl outline-none h-20 resize-none text-sm font-medium" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} />
       </div>
 
-      <button onClick={async () => {
-        if(!profile.username || !profile.city || !profile.dob) return setError(t[lang].error);
-        if(profile.accountType === 'pro') {
-          setStep(3);
-          return;
-        }
-          setIsLoading(true);
+      <button
+  onClick={() => {
+    if (!profile.username || !profile.city || !profile.dob) {
+      setError(t[lang].error);
+      return;
+    }
 
-try {
-  await updateProfile({
-     username: profile.username,
-      full_name: profile.displayName,
-      display_name: profile.displayName,
+    if (profile.accountType === "pro") {
+      setStep(3);
+      return;
+    }
+
+    setIsLoading(true);
+
+    safeOnComplete({
+      username: profile.username,
+      displayName: profile.displayName,
       bio: profile.bio,
       city: profile.city,
-      date_of_birth: profile.dob,
+      dob: profile.dob,
     });
 
-  const finalProfile = { ...profile, profileCompleted: true };
-  localStorage.setItem(storageKey, JSON.stringify(finalProfile));
-  setIsLoading(false);
-  safeOnComplete(finalProfile);
+    setIsLoading(false);
+  }}
 
-} catch (err: any) {
-    console.error("Database Error:", err.message);
-    setError("Save failed: " + err.message);
-
-  }  finally {
-      setIsLoading(false); // ✅ HERE ONLY
-      }
-  
-
-  }} 
  className="w-full mt-6 py-4 bg-pink-500 text-white font-black rounded-2xl shadow-lg active:scale-95 transition-all text-lg shadow-pink-100 uppercase italic tracking-tighter"
- >
-        {profile.accountType === 'pro' ? t[lang].next : t[lang].start}
+>
+ {profile.accountType === 'pro' ? t[lang].next : t[lang].start}
       </button>
       <button onClick={() => setStep(1)} className="w-full mt-2 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Back</button>
     </div>
@@ -232,39 +240,35 @@ try {
         <div className="relative"><LinkIcon className="absolute left-3 top-4 w-4 h-4 text-gray-400" /><input placeholder="Portfolio Link" className="w-full pl-10 p-4 bg-gray-50 rounded-2xl outline-none text-sm font-medium" value={profile.portfolioLink} onChange={e => setProfile({...profile, portfolioLink: e.target.value})}/></div>
       </div>
 
-      <button onClick={async () => {
-        if(!profile.businessName) return setError(t[lang].bizError);
-setIsLoading(true);
+      <button
+  onClick={() => {
+    if (!profile.businessName) {
+      setError(t[lang].bizError);
+      return;
+    }
 
-try {
-  await updateProfile({
-    username: profile.username,
-    full_name: profile.displayName,
-    bio: profile.bio,
-    date_of_birth: profile.dob,
-    city: profile.city,
-    business_name: profile.businessName,
-    portfolio_link: profile.portfolioLink,
-    industry: profile.industry,
-    business_type: profile.businessType,
-    experience: profile.experience,
-    operating_hours: profile.operatingHours,
-  });
+    setIsLoading(true);
 
-  const finalBusinessProfile = { ...profile, profileCompleted: true };
-  localStorage.setItem(storageKey, JSON.stringify(finalBusinessProfile));
-  safeOnComplete(finalBusinessProfile);
+    safeOnComplete({
+      username: profile.username,
+      displayName: profile.displayName,
+      bio: profile.bio,
+      city: profile.city,
+      dob: profile.dob,
+      businessName: profile.businessName,
+      portfolioLink: profile.portfolioLink,
+      industry: profile.industry,
+      businessType: profile.businessType,
+      experience: profile.experience,
+      operatingHours: profile.operatingHours,
+    });
 
-} catch (err) {
-  setError("Business profile save failed");
-  setIsLoading(false);
-} finally {
-      setIsLoading(false); // ✅ HERE ONLY
-      }
-   
+    setIsLoading(false);
+  }}
 
-      }} className="w-full mt-6 py-4 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-black rounded-2xl shadow-xl active:scale-95 flex items-center justify-center space-x-2 text-lg uppercase italic tracking-tighter">
-        <span>{t[lang].activate}</span><CheckCircle2 className="w-5 h-5" />
+    className="w-full mt-6 py-4 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-black rounded-2xl shadow-xl active:scale-95 flex items-center justify-center space-x-2 text-lg uppercase italic tracking-tighter"
+   >
+   <span>{t[lang].activate}</span><CheckCircle2 className="w-5 h-5" />
       </button>
       <button onClick={() => setStep(2)} className="w-full mt-2 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Back</button>
     </div>

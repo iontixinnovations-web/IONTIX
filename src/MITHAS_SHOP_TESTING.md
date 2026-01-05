@@ -59,7 +59,7 @@ Seller Dashboard
 ---
 
 ### 3️⃣ **MITHAS Shop - Gender Selection** ✓
-**File:** `MithasShopApp.tsx` (GenderSelection component)
+**File:** `App.tsx` (GenderSelection component)
 
 **Test Steps:**
 - [ ] Click "Shop" tab in bottom nav
@@ -74,7 +74,7 @@ Seller Dashboard
 ---
 
 ### 4️⃣ **MITHAS Landing Page** ✓
-**File:** `MithasShopApp.tsx` (LandingPage component)
+**File:** `App.tsx` (LandingPage component)
 
 **Test Steps:**
 - [ ] See themed header with back button, day/night mode, cart icon
@@ -98,7 +98,7 @@ Seller Dashboard
 ---
 
 ### 5️⃣ **Category Page** ✓
-**File:** `MithasShopApp.tsx` (CategoryPage component)
+**File:** `App.tsx` (CategoryPage component)
 
 **Test Steps:**
 - [ ] Click any category from landing page
@@ -115,7 +115,7 @@ Seller Dashboard
 ---
 
 ### 6️⃣ **Product Detail Page** ✓
-**File:** `MithasShopApp.tsx` (ProductDetailPage component)
+**File:** `App.tsx` (ProductDetailPage component)
 
 **Test Steps:**
 - [ ] See full product image at top
@@ -157,7 +157,7 @@ Seller Dashboard
 ---
 
 ### 7️⃣ **AR Try-On Modal** ✓
-**File:** `MithasShopApp.tsx` (ARTryOnModal component)
+**File:** `App.tsx` (ARTryOnModal component)
 
 **Test Steps:**
 - [ ] Click AR button on product with AR model
@@ -172,7 +172,7 @@ Seller Dashboard
 ---
 
 ### 8️⃣ **Bundle Preview Sheet** ✓
-**File:** `MithasShopApp.tsx` (BundlePreviewSheet component)
+**File:** `App.tsx` (BundlePreviewSheet component)
 
 **Test Steps:**
 - [ ] Click "Buy Full Look" on product
@@ -189,7 +189,7 @@ Seller Dashboard
 ---
 
 ### 9️⃣ **Cart Page** ✓
-**File:** `MithasShopApp.tsx` (CartPage component)
+**File:** `App.tsx` (CartPage component)
 
 **Access Methods:**
 - Click cart icon in header
@@ -226,7 +226,7 @@ Seller Dashboard
 ---
 
 ### 🔟 **Profile Page** ✓
-**File:** `MithasShopApp.tsx` (ProfilePage component)
+**File:** `App.tsx` (ProfilePage component)
 
 **Test Steps:**
 - [ ] See user avatar (gender emoji)

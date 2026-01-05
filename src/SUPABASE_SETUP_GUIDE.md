@@ -422,7 +422,7 @@ export function RegisterView() {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await signUp(email, password, { full_name, gender });
+    const result = await signUp(email, password, { , gender });
     if (result.success) {
       // Navigate to profile setup
     }

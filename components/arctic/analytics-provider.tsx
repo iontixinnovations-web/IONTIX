@@ -44,7 +44,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
         const { analyticsService } = await import("@/lib/arctic")
         analyticsService.identifyUser(user.id, {
           email: user.email,
-          name: user.full_name || undefined,
+          name: user. || undefined,
           role: user.role,
           created_at: user.created_at,
         })

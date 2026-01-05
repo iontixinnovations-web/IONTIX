@@ -30,7 +30,7 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     # Create new user
     new_user = User(
         email=user_data.email,
-        full_name=user_data.full_name,
+        =user_data.,
         username=user_data.username,
         phone=user_data.phone,
         password_hash=hash_password(user_data.password),
@@ -101,8 +101,8 @@ async def update_current_user(
     db: AsyncSession = Depends(get_db)
 ):
     """Update current user profile"""
-    if user_update.full_name:
-        current_user.full_name = user_update.full_name
+    if user_update.:
+        current_user. = user_update.
     if user_update.username:
         current_user.username = user_update.username
     if user_update.avatar_url:

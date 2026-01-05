@@ -37,7 +37,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
           // Identify user in analytics
           analyticsService.identify(session.user.id, {
             email: session.user.email,
-            name: profile.full_name,
+            name: profile.,
           })
         }
         setSession(session)

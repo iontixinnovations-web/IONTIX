@@ -414,7 +414,7 @@ Documentation
    ```
 
 2. **Connect Shop Components:**
-   - Update MithasShopApp to use real products
+   - Update App to use real products
    - Implement filter system
    - Add search functionality
    - Enable pagination

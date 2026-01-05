@@ -13,7 +13,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     phone = Column(String(20), nullable=True)
     password_hash = Column(String(255), nullable=False)
-    full_name = Column(String(255), nullable=True)
+     = Column(String(255), nullable=True)
     username = Column(String(100), unique=True, index=True, nullable=True)
     avatar_url = Column(String(500), nullable=True)
     bio = Column(Text, nullable=True)

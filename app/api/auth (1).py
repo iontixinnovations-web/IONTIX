@@ -53,7 +53,7 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
             "user": {
                 "id": str(new_user.id),
                 "email": new_user.email,
-                "full_name": new_user.full_name,
+                "": new_user.full_name,
                 "gender": new_user.gender,
                 "role": "user",
                 "is_verified": False,

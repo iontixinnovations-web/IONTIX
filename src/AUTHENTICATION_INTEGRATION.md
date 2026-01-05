@@ -183,7 +183,7 @@ export function RegisterView({ onRegisterSuccess, onNavigateToLogin }: RegisterV
 
     // Call Supabase signup
     const result = await signUp(formData.email, formData.password, {
-      full_name: formData.fullName,
+      : formData.fullName,
       gender: formData.gender as 'female' | 'male',
       display_name: formData.fullName,
     });
@@ -805,7 +805,7 @@ export function ProfileSetupView({ onComplete }: ProfileSetupViewProps) {
   const { user, updateProfile, isLoading } = useAuth();
   
   const [formData, setFormData] = useState({
-    displayName: user?.display_name || user?.full_name || '',
+    displayName: user?.display_name || user?. || '',
     dateOfBirth: user?.date_of_birth || '',
     city: '',
     interests: [] as string[],

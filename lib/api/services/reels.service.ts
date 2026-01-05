@@ -17,7 +17,7 @@ export interface Reel {
   creator: {
     id: string
     username: string
-    full_name: string
+    : string
     avatar_url: string
     is_verified: boolean
   }

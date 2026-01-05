@@ -110,7 +110,7 @@ const handleSubmit = async (e) => {
 - [ ] Implement filters (category, gender, price)
 - [ ] Add search functionality
 - [ ] Implement pagination
-- [ ] Connect to MithasShopApp component
+- [ ] Connect to App component
 
 **Time:** 8-10 hours  
 **Difficulty:** Medium

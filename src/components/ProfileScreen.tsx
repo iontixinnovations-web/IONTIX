@@ -10,16 +10,23 @@ import {
 import { toast } from 'sonner@2.0.3';
 import { useAuthStore } from "../lib/store";
 const EMPTY_PROFILE = {
-    name: "",
-      email: "",
-        dob: "",
-          city: "",
-            language: "",
-              profileCompleted: false,
-                wallet: {
-                    points: 0,
-                      },
-                      };
+  name: "loading",
+  email: "",
+  dob: "",
+  city: "",
+  username: "loading",
+  language: "English",
+  memberSince: "2026-01-01",
+  profileCompleted: false,
+  coverUrl: "linear-gradient(to right, #a855f7, #ec4899)",
+  photoUrl: "",
+  stats: { followers: '0', following: '0', viewsThisWeek: '0', profileViews: '0' },
+  wallet: { points: 0, balance: 0 },
+  missions: [],
+  aiHistory: [],
+  settings: { is2FAEnabled: false, isProfilePrivate: false }
+};
+
 
 
 // --- Configuration and Mock Data ---
@@ -570,7 +577,7 @@ const GlowCollabModal = ({ onClose }: { onClose: () => void }) => (
 
 const ShareModal = ({ profile, onClose }: { profile: any; onClose: () => void }) => {
   const handleCopy = () => {
-    const link = `glow.io/p/${profile.username.substring(1)}`;
+    const link = `glow.io/p/${(profile?.username?.startsWith?.('@') ? profile.username.substring(1) : (profile?.username || 'user'))}`;
     navigator.clipboard.writeText(link);
     toast.success('Link copied to clipboard!');
   };
@@ -583,7 +590,7 @@ const ShareModal = ({ profile, onClose }: { profile: any; onClose: () => void })
           <span className="text-gray-400 text-sm">Direct URL:</span>
           <input 
             readOnly 
-            value={`glow.io/p/${profile.username.substring(1)}`} 
+            value={`glow.io/p/${(profile?.username?.startsWith?.('@') ? profile.username.substring(1) : (profile?.username || 'user'))}`} 
             className="w-full p-3 mt-1 bg-gray-600 rounded-lg text-gray-200 border-none"
           />
         </label>
@@ -615,7 +622,7 @@ const EditProfileModal = ({ profile, setProfile, onClose }: {
   onClose: () => void 
 }) => {
   const [name, setName] = useState(profile.name);
-  const [username, setUsername] = useState(profile.username.substring(1));
+  const [username, setUsername] = useState((profile?.username?.startsWith?.('@') ? profile.username.substring(1) : (profile?.username || 'user')));
   const [bio, setBio] = useState(profile.bio);
   const [location, setLocation] = useState(profile.location);
   const [website, setWebsite] = useState(profile.website || "");
@@ -1014,9 +1021,32 @@ export function ProfileScreen({ onNavigateHome }: ProfileScreenProps) {
 
 useEffect(() => {
   if (storeProfile) {
-      setProfile(storeProfile);
-        }
-        }, [storeProfile]);
+    setProfile((prev: any) => ({
+      ...prev,           
+      ...storeProfile,    // சுபாபேஸ் டேட்டா முழுவதையும் அப்படியே உள்ளே தள்ளுறோம்
+      
+      // மேப்பிங்: டிசைன் பெயர் = சுபாபேஸ் பெயர்
+      name: storeProfile.full_name || storeProfile.name || prev.name,
+      username: storeProfile.username || prev.username,
+      bio: storeProfile.bio || prev.bio,
+      location: storeProfile.city || storeProfile.location || "Earth" ,
+      photoUrl: storeProfile.avatar_url || storeProfile.photoUrl || "",
+      
+      wallet: {
+        points: storeProfile.points || 0,
+        balance: storeProfile.balance || 0
+      },
+      stats: {
+        followers: storeProfile.followers_count || '0',
+        following: storeProfile.following_count || '0',
+        viewsThisWeek: '0',
+        profileViews: '0'
+      }
+    }));
+  }
+}, [storeProfile]);
+
+
 
   useEffect(() => {
       localStorage.setItem('glowProfileData', JSON.stringify(profile));
@@ -1122,15 +1152,17 @@ useEffect(() => {
     '--glow-shadow': `${GLOW_ACCENT}33`,
   } as React.CSSProperties;
   
-  const coverStyle = {
-    backgroundImage: profile.coverUrl.startsWith('http') 
-        ? `url(${profile.coverUrl})` 
-        : profile.coverUrl,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    height: '150px',
-  };
+  // 📍 
+const coverStyle = {
+  backgroundImage: (profile?.coverUrl && typeof profile.coverUrl === 'string' && profile.coverUrl.startsWith('http'))
+    ? `url(${profile.coverUrl})` 
+    : (profile?.coverUrl || 'linear-gradient(to right, #a855f7, #ec4899)'),
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  height: '150px',
+};
+
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-8 pb-8 font-sans" style={glowStyle}>
@@ -1245,11 +1277,13 @@ useEffect(() => {
 
                 <div className="p-6 pt-0 relative">
                     <div className="absolute -top-12 left-6 w-24 h-24"> 
-                        <img
-                            src={profile.photoUrl || `https://placehold.co/100x100/db2777/ffffff?text=${profile.name[0]}`}
-                            alt="Profile Avatar"
-                            className="w-full h-full rounded-full object-cover border-4 border-gray-800 ring-4 ring-pink-400/50"
-                        />
+                        
+<img
+    src={profile.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=db2777&color=fff`}
+    alt="Profile Avatar"
+    className="w-full h-full rounded-full object-cover border-4 border-gray-800 ring-4 ring-pink-400/50"
+/>
+
                         {profile.isVerified && <CheckCircle size={20} className="absolute bottom-0 right-0 text-pink-400 bg-gray-800 rounded-full" />}
                     </div>
                 
@@ -1279,7 +1313,7 @@ useEffect(() => {
                         )}
                         <p className="flex items-center text-xs text-gray-500 pt-2 border-t border-gray-800">
                           <User size={14} className="mr-2" />
-                          Member Since {profile.memberSince.split('-')[0]}
+                         Member Since {new Date(profile.created_at || Date.now()).getFullYear()}
                         </p>
                     </div>
                 </div>
@@ -1332,7 +1366,7 @@ useEffect(() => {
           <div className="lg:col-span-2 space-y-6">
             
             <div className="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700">
-              <h3 className="text-xl mb-3 text-white">About Alex</h3>
+              <h3 className="text-xl mb-3 text-white">About {profile.name.split(' ')[0]}</h3>
               <p className="text-gray-300 leading-relaxed">{profile.bio}</p>
               
               {profile.website && (
@@ -1430,9 +1464,9 @@ useEffect(() => {
       )}
       {showModal === 'editProfile' && (
         <EditProfileModal 
-          profile={profile} 
+          profile={profile || initialProfileData}
           setProfile={setProfile} 
-          onClose={() => setShowModal(null)} 
+          onClose={() => setIsEditModalOpen(false)} 
         />
       )}
       {showModal === 'settings' && (

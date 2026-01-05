@@ -13,7 +13,7 @@ export function RegisterView({ onSendOTP }: RegisterViewProps) {
   
   const [inputType, setInputType] = useState<'email' | 'phone'>('email');
   const [formData, setFormData] = useState({
-    fullName: '',
+    displayName: '',
     email: '',
     phone: '',
     password: '',
@@ -29,10 +29,10 @@ export function RegisterView({ onSendOTP }: RegisterViewProps) {
     const newErrors: Record<string, string> = {};
 
     // Name validation
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-    } else if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = 'Name must be at least 2 characters';
+    if (!formData.displayName.trim()) {
+      newErrors.displayname = 'Full name is required';
+    } else if (formData.displayName.trim().length < 2) {
+      newErrors.displayname = 'Name must be at least 2 characters';
     }
 
     // Email/Phone validation based on input type
@@ -89,9 +89,9 @@ export function RegisterView({ onSendOTP }: RegisterViewProps) {
     if (inputType === 'email') {
       // Email registration with Supabase
       const result = await signUp(formData.email, formData.password, {
-        full_name: formData.fullName,
+        full_name: formData.displayName,
         gender: formData.gender as 'female' | 'male',
-        display_name: formData.fullName,
+        display_name: formData.displayName,
       });
 
       if (result.success) {
@@ -141,15 +141,15 @@ export function RegisterView({ onSendOTP }: RegisterViewProps) {
         <div className="relative">
           <input
             type="text"
-            value={formData.fullName}
-            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-            className={`w-full p-3 pl-10 border ${errors.fullName ? 'border-red-500' : 'border-pink-200'} rounded-xl text-gray-700 placeholder-gray-400 focus:border-pink-500 focus:ring-4 focus:ring-pink-500/20 outline-none transition-all`}
-            placeholder="Full Name"
+            value={formData.displayName}
+            onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+            className={`w-full p-3 pl-10 border ${errors.displayname ? 'border-red-500' : 'border-pink-200'} rounded-xl text-gray-700 placeholder-gray-400 focus:border-pink-500 focus:ring-4 focus:ring-pink-500/20 outline-none transition-all`}
+            placeholder="Display Name"
             disabled={isLoading}
           />
           <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-          {errors.fullName && (
-            <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
+          {errors.displayname && (
+            <p className="text-red-500 text-sm mt-1">{errors.displayname}</p>
           )}
         </div>
 

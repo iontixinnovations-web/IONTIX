@@ -159,7 +159,7 @@ function MyComponent() {
   
   // Register
   await signUp('email@example.com', 'password', {
-    full_name: 'John Doe',
+    : 'John Doe',
     gender: 'male',
   });
   

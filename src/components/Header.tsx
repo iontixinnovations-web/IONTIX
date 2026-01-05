@@ -13,6 +13,10 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const user = useAuthStore((state) => state.user);
+const profile = useAuthStore((state) => state.profile); 
+
+
 
   const glowCoins = 450;
   const hasUnreadNotifications = true;
@@ -84,37 +88,39 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
               <User className="w-5 h-5 text-white" />
             </button>
 
-            {showDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl p-3 z-50">
-                <p className="text-sm text-gray-800 mb-2 border-b pb-2">
-                  Jane Doe
-                </p>
+{showDropdown && (
+  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+    {/* Profile Name Display */}
+    <p className="px-4 py-2 text-sm font-medium text-gray-800 border-b border-gray-100 mb-1">
+      {profile?.full_name || profile?.name || "Glow User"}
+    </p>
 
-                <button
-                  onClick={() => handleProfileAction("My Account")}
-                  className="flex items-center w-full p-2 text-sm hover:bg-gray-50 rounded"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  My Account
-                </button>
+    <button
+      onClick={() => handleProfileAction('My Account')}
+      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 transition-colors"
+    >
+      <Settings className="w-4 h-4 mr-2" />
+      My Account
+    </button>
 
-                <button
-                  onClick={() => handleProfileAction("My Orders")}
-                  className="flex items-center w-full p-2 text-sm hover:bg-gray-50 rounded"
-                >
-                  <Package className="w-4 h-4 mr-2" />
-                  My Orders
-                </button>
+    <button
+      onClick={() => handleProfileAction('My Orders')}
+      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 transition-colors"
+    >
+      <Package className="w-4 h-4 mr-2" />
+      My Orders
+    </button>
 
-                <button
-                  onClick={() => handleProfileAction("Logout")}
-                  className="flex items-center w-full p-2 text-sm text-red-600 hover:bg-gray-50 rounded"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </button>
-              </div>
-            )}
+    <button
+      onClick={handleLogout}
+      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+    >
+      <LogOut className="w-4 h-4 mr-2" />
+      Logout
+    </button>
+  </div>
+)} 
+
           </div>
         </div>
       </header>

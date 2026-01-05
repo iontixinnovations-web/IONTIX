@@ -1,1010 +1,522 @@
-import { useState, useEffect, useMemo, useReducer, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useReducer, useMemo } from 'react';
 import { 
-  Search, ShoppingCart, Camera, User, ArrowLeft, X, Star, MapPin, 
-  Zap, Award, Sparkles, Filter, ShieldCheck, Mic, Share2, Sun, Moon, 
-  Briefcase, HelpCircle, Edit3, Bell, ChevronRight, Clock, 
-  BadgeIndianRupee, Package, PlusCircle, Trash2, Edit, MinusCircle,
-  FileText, TrendingUp, Heart, Home, Film, MessageSquare
+  ShoppingCart, MapPin, Zap, Sparkles, Scan, Layers, 
+  ChevronRight, ShoppingBag, Mic, Fingerprint, 
+  Building2, Users, Navigation2, ArrowRight, X, 
+  Volume2, VolumeX, Music, Bell, ChevronUp, ChevronDown, Wind, Clock,
+  Filter, Heart, Star, Camera, Box, Share2, ShieldCheck, Truck,
+  Eye, Cpu, Ghost, Move3d, Radio, RefreshCw, User, Award, Trash2,
+  Trophy, ThumbsUp, PackageCheck, Download, Search, TrendingUp,
+  Gift, Crown, CreditCard, Tag, Store, MessageCircle, Briefcase,
+  ArrowLeft, CheckSquare, ScanFace, Palette
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
-
-// --- TYPES ---
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  gender: 'female' | 'male';
-  image: string;
-  has_ar_model: boolean;
-  bundle_tags?: string[];
-  recommendations?: string[];
-  rating: number;
-  asSeenInReels?: boolean;
-  stock: number;
-  seller?: string;
-  sales?: number;
-  views?: number;
-  vendorOffers?: VendorOffer[];
-}
-
-interface VendorOffer {
-  vendorId: string;
-  price: number;
-  delivery_eta: string;
-}
-
-interface LocalVendor {
-  id: string;
-  name: string;
-  distance_km: number;
-  trust_score: number;
-  verified_tag: boolean;
-}
-
-interface CartItem extends Product {
-  quantity: number;
-  vendor?: string;
-}
-
-interface MithasShopAppProps {
-  onNavigateBack?: () => void;
-  onNavigateToSellerDashboard?: () => void;
-}
-
-type Page = 'landing' | 'category' | 'product' | 'cart' | 'profile' | 'shop';
 
 // --- MOCK DATA ---
-const getMockData = () => {
-  const products: Product[] = [
-    {
-      id: 'SAR123',
-      name: 'Banarasi Silk Saree',
-      price: 4999,
-      category: 'Fashion',
-      gender: 'female',
-      image: 'https://placehold.co/400x600/f87171/ffffff?text=Saree',
-      has_ar_model: true,
-      bundle_tags: ['bridal', 'ethnic'],
-      recommendations: ['JEW456', 'LIP101'],
-      rating: 4.8,
-      asSeenInReels: true,
-      stock: 45,
-      vendorOffers: [
-        { vendorId: 'V1', price: 4799, delivery_eta: '15 min' },
-        { vendorId: 'V2', price: 4999, delivery_eta: '30 min' },
-        { vendorId: 'V3', price: 4899, delivery_eta: '45 min' },
-      ],
-    },
-    {
-      id: 'LEH456',
-      name: 'Embroidered Lehenga',
-      price: 8999,
-      category: 'Fashion',
-      gender: 'female',
-      image: 'https://placehold.co/400x600/fb923c/ffffff?text=Lehenga',
-      has_ar_model: true,
-      bundle_tags: ['wedding', 'party'],
-      recommendations: ['JEW123'],
-      rating: 4.9,
-      stock: 20,
-      vendorOffers: [{ vendorId: 'V2', price: 8999, delivery_eta: '30 min' }],
-    },
-    {
-      id: 'LIP101',
-      name: 'Velvet Matte Lipstick',
-      price: 899,
-      category: 'Makeup',
-      gender: 'female',
-      image: 'https://placehold.co/400x400/ef4444/ffffff?text=Lipstick',
-      has_ar_model: true,
-      bundle_tags: ['glam', 'party'],
-      recommendations: ['FOU102', 'KAJ103'],
-      rating: 4.7,
-      asSeenInReels: true,
-      stock: 150,
-      vendorOffers: [{ vendorId: 'V4', price: 849, delivery_eta: '10 min' }],
-    },
-    {
-      id: 'MKU301',
-      name: 'Linen Kurta Pajama',
-      price: 2999,
-      category: 'Fashion',
-      gender: 'male',
-      image: 'https://placehold.co/400x600/60a5fa/ffffff?text=Kurta',
-      has_ar_model: true,
-      bundle_tags: ['ethnic', 'wedding'],
-      recommendations: ['WAT303'],
-      rating: 4.7,
-      asSeenInReels: true,
-      stock: 75,
-      vendorOffers: [{ vendorId: 'V5', price: 2999, delivery_eta: '1 hr' }],
-    },
-    {
-      id: 'FOU102',
-      name: '24H Coverage Foundation',
-      price: 1499,
-      category: 'Makeup',
-      gender: 'female',
-      image: 'https://placehold.co/400x400/fca5a5/ffffff?text=Foundation',
-      has_ar_model: true,
-      bundle_tags: ['bridal', 'daily'],
-      recommendations: ['LIP101'],
-      rating: 4.6,
-      stock: 60,
-      vendorOffers: [],
-    },
-    {
-      id: 'SUI302',
-      name: 'Classic Tuxedo Suit',
-      price: 9999,
-      category: 'Fashion',
-      gender: 'male',
-      image: 'https://placehold.co/400x600/3b82f6/ffffff?text=Suit',
-      has_ar_model: true,
-      bundle_tags: ['party', 'formal'],
-      recommendations: ['WAT303'],
-      rating: 4.9,
-      stock: 15,
-      vendorOffers: [],
-    },
-    {
-      id: 'JEW456',
-      name: 'Golden Choker Set',
-      price: 3499,
-      category: 'Jewelry',
-      gender: 'female',
-      image: 'https://placehold.co/400x400/ffd700/ffffff?text=Choker',
-      has_ar_model: false,
-      rating: 4.8,
-      stock: 30,
-      vendorOffers: [{ vendorId: 'V1', price: 3299, delivery_eta: '20 min' }],
-    },
-    {
-      id: 'WAT303',
-      name: 'Premium Watch',
-      price: 5999,
-      category: 'Accessories',
-      gender: 'male',
-      image: 'https://placehold.co/400x400/2d3748/ffffff?text=Watch',
-      has_ar_model: false,
-      rating: 4.7,
-      stock: 25,
-      vendorOffers: [],
-    },
-  ];
-
-  const localVendors: LocalVendor[] = [
-    { id: 'V1', name: "Seema's Saree Emporium", distance_km: 1.2, trust_score: 4.8, verified_tag: true },
-    { id: 'V2', name: "Kala Mandir", distance_km: 2.4, trust_score: 4.6, verified_tag: true },
-    { id: 'V3', name: "Nandhini Trends", distance_km: 3.0, trust_score: 4.7, verified_tag: true },
-    { id: 'V4', name: "The Lipstick Store", distance_km: 0.8, trust_score: 4.9, verified_tag: true },
-    { id: 'V5', name: "Men's Attire Co.", distance_km: 4.1, trust_score: 4.5, verified_tag: true },
-  ];
-
-  return { products, localVendors };
+const MOCK_DATA = {
+  floors: [
+    { id: 0, name: 'Ground Floor', category: 'Makeup', icon: '💄', color: 'from-pink-500 to-fuchsia-600', music: 'Lofi Beats', audio: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3' },
+    { id: 1, name: 'First Floor', category: 'Fashion', icon: '👗', color: 'from-rose-600 to-orange-500', music: 'Classical Veena', audio: 'https://assets.mixkit.co/active_storage/sfx/2053/2053-preview.mp3' },
+    { id: 2, name: 'Second Floor', category: 'Jewelry', icon: '💎', color: 'from-amber-500 to-yellow-600', music: 'Temple Chimes', audio: 'https://assets.mixkit.co/active_storage/sfx/1113/1113-preview.mp3' },
+    { id: 3, name: 'Third Floor', category: 'Accessories', icon: '⌚', color: 'from-slate-700 to-blue-900', music: 'Cyber Jazz', audio: 'https://assets.mixkit.co/active_storage/sfx/2190/2190-preview.mp3' }
+  ],
+  localVendors: [
+    { id: 'V1', name: "Kanchipuram Emporium", distance_km: 1.2, trust_score: 4.8, verified_tag: true, votes: 1240 },
+    { id: 'V2', name: "Glow & Glam", distance_km: 0.8, trust_score: 4.9, verified_tag: true, votes: 980 },
+    { id: 'V3', name: "Karamadai Gold Hub", distance_km: 2.4, trust_score: 4.7, verified_tag: true, votes: 1560 }
+  ],
+  products: [
+    { id: 1, name: 'Kanchipuram Silk Saree', price: 8500, category: 'Fashion', gender: 'female', floor: 1, image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400', haptic: [100, 100], bundleWith: 2, trending: true, emoji: '🎀', rating: 4.9, seller: 'Royal Weaves', ar: true },
+    { id: 2, name: 'Ruby Matte Lipstick', price: 950, category: 'Makeup', gender: 'female', floor: 0, image: 'https://images.unsplash.com/photo-1586776977607-310e9c725c37?auto=format&fit=crop&w=400', haptic: [30, 10, 30], emoji: '💄', rating: 4.8, seller: 'GlowCo', ar: true, trending: true },
+    { id: 3, name: 'Metallic Eyeshadow', price: 1499, category: 'Makeup', gender: 'female', floor: 0, image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=400', haptic: [20, 20], emoji: '🎨', rating: 4.7, seller: 'Urban Glow', ar: true },
+    { id: 4, name: 'Golden Choker', price: 2499, category: 'Jewelry', gender: 'female', floor: 2, image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=400', emoji: '👑', rating: 4.9, trending: true, seller: 'Royal Jewels' },
+    { id: 5, name: 'Linen Kurta Pajama', price: 2999, category: 'Fashion', gender: 'male', floor: 1, image: 'https://images.unsplash.com/photo-1589310243389-96a5483213a8?auto=format&fit=crop&w=400', haptic: [80, 50, 80], emoji: '👔', rating: 4.6 },
+    { id: 6, name: 'Luxury Chrono Watch', price: 5500, category: 'Accessories', gender: 'male', floor: 3, image: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=400', emoji: '⌚', rating: 4.8, trending: true }
+  ],
+  creators: [
+    { id: 1, name: 'Alex Johnson', username: '@alexj_glow', avatar: 'https://i.pravatar.cc/150?u=1', verified: true, followers: '4.5K', badge: 'Diamond' },
+    { id: 2, name: 'Priya Guru', username: '@priyabeauty', avatar: 'https://i.pravatar.cc/150?u=2', verified: true, followers: '3.2K', badge: 'Gold' }
+  ]
 };
 
-const MOCK_DATA = getMockData();
-
-// --- THEMES ---
-const getThemes = () => ({
-  isNight: new Date().getHours() < 6 || new Date().getHours() >= 18,
-  female: {
-    day: {
-      bg: 'bg-pink-50',
-      text: 'text-gray-900',
-      accent: 'bg-pink-300',
-      accentText: 'text-pink-600',
-      primary: 'bg-pink-500',
-      secondary: 'bg-white',
-      secondaryText: 'text-gray-800',
-      cardBg: 'bg-pink-100',
-    },
-    night: {
-      bg: 'bg-gray-900',
-      text: 'text-gray-100',
-      accent: 'bg-pink-600',
-      accentText: 'text-pink-400',
-      primary: 'bg-pink-500',
-      secondary: 'bg-gray-800',
-      secondaryText: 'text-white',
-      cardBg: 'bg-gray-700',
-    },
-  },
-  male: {
-    day: {
-      bg: 'bg-blue-50',
-      text: 'text-gray-900',
-      accent: 'bg-blue-300',
-      accentText: 'text-blue-600',
-      primary: 'bg-blue-500',
-      secondary: 'bg-white',
-      secondaryText: 'text-gray-800',
-      cardBg: 'bg-blue-100',
-    },
-    night: {
-      bg: 'bg-gray-900',
-      text: 'text-gray-100',
-      accent: 'bg-blue-600',
-      accentText: 'text-blue-400',
-      primary: 'bg-blue-500',
-      secondary: 'bg-gray-800',
-      secondaryText: 'text-white',
-      cardBg: 'bg-gray-700',
-    },
-  },
-});
-
-// --- CART REDUCER ---
-const cartReducer = (state: CartItem[], action: any): CartItem[] => {
+const cartReducer = (state, action) => {
   switch (action.type) {
-    case 'ADD_TO_CART': {
-      const existingItem = state.find(item => item.id === action.payload.id);
-      if (existingItem) {
-        return state.map(item =>
-          item.id === action.payload.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      return [...state, { ...action.payload, quantity: 1, vendor: action.vendor }];
-    }
-    case 'ADD_BUNDLE_TO_CART': {
-      let newState = [...state];
-      action.payload.forEach((bundleItem: Product) => {
-        if (!newState.find(item => item.id === bundleItem.id)) {
-          newState.push({ ...bundleItem, quantity: 1 });
-        }
-      });
-      return newState;
-    }
-    case 'REMOVE_FROM_CART':
-      return state.filter(item => item.id !== action.payload.id);
-    case 'CLEAR_CART':
-      return [];
-    default:
-      return state;
+    case 'ADD_TO_CART':
+      const existing = state.find(item => item.id === action.payload.id);
+      if (existing) return state.map(item => item.id === action.payload.id ? { ...item, quantity: item.quantity + 1 } : item);
+      return [...state, { ...action.payload, quantity: 1 }];
+    case 'UPDATE_QTY':
+      return state.map(item => item.id === action.id ? { ...item, quantity: Math.max(1, item.quantity + action.delta) } : item);
+    case 'REMOVE_FROM_CART': return state.filter(item => item.id !== action.id);
+    case 'CLEAR_CART': return [];
+    default: return state;
   }
 };
 
-// --- SMART VENDOR SORTING ---
-const sortVendors = (vendorOffers: VendorOffer[] = []) => {
-  if (!vendorOffers || vendorOffers.length === 0) return [];
-
-  const populatedOffers = vendorOffers.map(offer => {
-    const vendorDetails = MOCK_DATA.localVendors.find(v => v.id === offer.vendorId);
-    return { ...offer, ...vendorDetails };
-  });
-
-  const minPrice = Math.min(...populatedOffers.map(v => v.price));
-
-  const scoredVendors = populatedOffers.map(vendor => {
-    const price_weight = 0.4;
-    const distance_weight = 0.3;
-    const trust_weight = 0.3;
-
-    const priceScore = price_weight * (minPrice / vendor.price);
-    const distanceScore = distance_weight * (1 / (vendor.distance_km || 1));
-    const trustScore = trust_weight * ((vendor.trust_score || 0) / 5);
-
-    const totalScore = priceScore + distanceScore + trustScore;
-    return { ...vendor, score: totalScore };
-  });
-
-  return scoredVendors.sort((a, b) => (b.score || 0) - (a.score || 0));
-};
-
-// --- COMPONENTS ---
-const GenderSelection = ({ onSelect }: { onSelect: (gender: 'female' | 'male') => void }) => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
-    <h1 className="text-4xl mb-2">Welcome to MITHAS</h1>
-    <p className="text-lg mb-12 text-gray-400">Select your preferred experience:</p>
-    <div className="flex gap-6">
-      <button
-        onClick={() => onSelect('female')}
-        className="flex flex-col items-center p-8 rounded-2xl bg-pink-500 hover:bg-pink-600 transition shadow-2xl w-40"
-      >
-        <div className="text-5xl mb-3">👩</div>
-        <span className="text-lg">Women's</span>
-      </button>
-      <button
-        onClick={() => onSelect('male')}
-        className="flex flex-col items-center p-8 rounded-2xl bg-blue-500 hover:bg-blue-600 transition shadow-2xl w-40"
-      >
-        <div className="text-5xl mb-3">👨</div>
-        <span className="text-lg">Men's</span>
-      </button>
-    </div>
-  </div>
-);
-
-const Header = ({
-  theme,
-  goBack,
-  cartCount,
-  timeOfDay,
-  onCartClick,
-}: {
-  theme: any;
-  goBack: () => void;
-  cartCount: number;
-  timeOfDay: string;
-  onCartClick: () => void;
-}) => (
-  <header className={`fixed top-0 left-0 right-0 max-w-md mx-auto ${theme.secondary} shadow-md p-4 flex items-center justify-between z-20`}>
-    <button onClick={goBack} className={`p-2 rounded-full ${theme.cardBg} active:scale-95 transition-transform`}>
-      <ArrowLeft size={24} />
-    </button>
-    <div className="flex items-center space-x-4">
-      <div className={`text-sm p-2 rounded-full ${theme.cardBg} flex items-center gap-1`}>
-        {timeOfDay === 'day' ? <Sun size={16} className="text-yellow-400" /> : <Moon size={16} className="text-blue-400" />}
-        {timeOfDay.charAt(0).toUpperCase() + timeOfDay.slice(1)}
-      </div>
-      <button onClick={onCartClick} className={`relative p-2 rounded-full ${theme.cardBg} active:scale-95 transition-transform`}>
-        <ShoppingCart size={24} />
-        {cartCount > 0 && (
-          <span className="absolute top-0 right-0 block h-3 w-3 rounded-full ring-2 ring-white bg-red-500"></span>
-        )}
-      </button>
-    </div>
-  </header>
-);
-
-const Section = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
-  <section className="mb-6">
-    <div className="flex items-center gap-2 mb-3">
-      {icon}
-      <h2 className="text-2xl">{title}</h2>
-    </div>
-    {children}
-  </section>
-);
-
-const ProductCard = ({
-  product,
-  theme,
-  onClick,
-}: {
-  product: Product;
-  theme: any;
-  onClick: () => void;
-}) => (
-  <div
-    onClick={onClick}
-    className={`p-3 rounded-xl shadow-md ${theme.secondary} cursor-pointer hover:shadow-lg transition-transform active:scale-[0.98]`}
-  >
-    <img src={product.image} alt={product.name} className="w-full h-32 object-cover rounded-lg" />
-    <h4 className="mt-2 text-sm truncate">{product.name}</h4>
-    <p className={`text-lg ${theme.accentText}`}>₹{product.price.toLocaleString('en-IN')}</p>
-    <div className="flex items-center text-xs opacity-70 mt-1">
-      <Star size={12} className="text-yellow-400 fill-current mr-1" /> {product.rating}
-    </div>
-  </div>
-);
-
-const LandingPage = ({
-  theme,
-  viewCategory,
-  viewProduct,
-  inventory,
-  gender,
-  setShowKycModal,
-}: any) => {
-  const filteredCategories = [...new Set(MOCK_DATA.products.filter(p => p.gender === gender).map(p => p.category))];
-  const recentReelsProducts = inventory.filter((p: Product) => p.gender === gender && p.asSeenInReels).slice(0, 4);
-  const nearbyVendors = MOCK_DATA.localVendors.slice(0, 3);
-
-  return (
-    <div className="p-4 space-y-6 animate-fade-in">
-      <div className={`p-4 rounded-xl shadow-lg ${theme.secondary}`}>
-        <div className="relative">
-          <Search size={20} className={`absolute left-3 top-1/2 transform -translate-y-1/2 opacity-70 ${theme.accentText}`} />
-          <input
-            type="text"
-            placeholder="Search products, brands..."
-            className={`w-full p-3 pl-10 rounded-full ${theme.cardBg} focus:outline-none`}
-          />
-        </div>
-      </div>
-
-      <Section title="Explore Categories" icon={<Filter size={20} className={theme.accentText} />}>
-        <div className="flex overflow-x-auto space-x-3 pb-2 hide-scrollbar">
-          {filteredCategories.map(category => (
-            <button
-              key={category}
-              onClick={() => viewCategory(category)}
-              className={`flex-shrink-0 w-24 h-24 p-3 rounded-xl shadow-md ${theme.accent} text-black flex flex-col items-center justify-center transition hover:scale-105`}
-            >
-              <Briefcase size={28} />
-              <span className="text-sm mt-1">{category}</span>
-            </button>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Nearby Vendors" icon={<MapPin size={20} className={theme.accentText} />}>
-        <div className="space-y-3">
-          {nearbyVendors.map(vendor => (
-            <div key={vendor.id} className={`p-4 rounded-xl ${theme.secondary} flex items-center justify-between`}>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold">{vendor.name}</h3>
-                  {vendor.verified_tag && <ShieldCheck size={16} className="text-green-400" />}
-                </div>
-                <div className="flex items-center gap-3 text-xs opacity-70 mt-1">
-                  <span className="flex items-center gap-1">
-                    <MapPin size={12} /> {vendor.distance_km} km
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Star size={12} className="fill-current text-yellow-400" /> {vendor.trust_score}
-                  </span>
-                </div>
-              </div>
-              <ChevronRight size={20} className="opacity-50" />
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="As Seen In Reels" icon={<Mic size={20} className={theme.accentText} />}>
-        <div className="grid grid-cols-2 gap-4">
-          {recentReelsProducts.map((product: Product) => (
-            <ProductCard key={product.id} product={product} theme={theme} onClick={() => viewProduct(product)} />
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Become a MITHAS Seller" icon={<Share2 size={20} className={theme.accentText} />}>
-        <button
-          onClick={() => setShowKycModal(true)}
-          className={`w-full ${theme.primary} text-white py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform`}
-        >
-          Start Listing Products <ChevronRight size={20} />
-        </button>
-      </Section>
-    </div>
-  );
-};
-
-const CategoryPage = ({ theme, category, viewProduct, inventory, gender }: any) => {
-  const products = inventory.filter((p: Product) => p.category === category && p.gender === gender);
+export default function MithasShopApp() {
+  const [gender, setGender] = useState(null);
+  const [page, setPage] = useState('mall'); // mall, product, cart, orders, creators
+  const [activeTab, setActiveTab] = useState('products');
+  const [cart, dispatch] = useReducer(cartReducer, []);
+  const [glowPoints, setGlowPoints] = useState(2500);
+  const [activeFloor, setActiveFloor] = useState(0);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isElevating, setIsElevating] = useState(false);
+  const [targetFloor, setTargetFloor] = useState(0);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isDroneDelivering, setIsDroneDelivering] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [wishlist, setWishlist] = useState(new Set());
   
-  return (
-    <div className="p-4 animate-fade-in">
-      <h2 className="text-3xl mb-6 flex items-center">
-        <Filter size={24} className={theme.accentText} />
-        <span className="ml-2">{category}</span>
-      </h2>
-      <div className="grid grid-cols-2 gap-4">
-        {products.map((product: Product) => (
-          <ProductCard key={product.id} product={product} theme={theme} onClick={() => viewProduct(product)} />
-        ))}
-      </div>
-    </div>
-  );
-};
+  const videoRef = useRef(null);
+  const audioRef = useRef(new Audio());
 
-const ProductDetailPage = ({ theme, product, dispatch, setShowArModal, setShowBundleSheet, showToast, findProduct, viewProduct }: any) => {
-  const recommended = (product.recommendations || []).map((id: string) => findProduct(id)).filter(Boolean);
-  const sortedLocalVendors = useMemo(() => sortVendors(product.vendorOffers), [product.vendorOffers]);
+  // --- AUDIO AMBIENCE ---
+  useEffect(() => {
+    if (!gender) return;
+    const floor = MOCK_DATA.floors[activeFloor];
+    audioRef.current.src = floor.audio;
+    audioRef.current.loop = true;
+    audioRef.current.volume = 0.15;
+    audioRef.current.play().catch(() => console.log("Audio play blocked"));
+    return () => audioRef.current.pause();
+  }, [activeFloor, gender]);
 
-  const handleAddToCart = (vendor: any = null) => {
-    const vendorName = vendor ? vendor.name : 'MITHAS';
-    dispatch({ type: 'ADD_TO_CART', payload: product, vendor: vendorName });
-    showToast(`${product.name} added to cart!`, <ShoppingCart size={16} />);
+  // --- VOICE COMMANDS ---
+  const startVoiceCommand = () => {
+    setIsListening(true);
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setTimeout(() => setIsListening(false), 2000);
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.start();
+    recognition.onresult = (event) => {
+      const command = event.results[0][0].transcript.toLowerCase();
+      if (command.includes('fashion')) handleFloorChange(1);
+      else if (command.includes('makeup')) handleFloorChange(0);
+      else if (command.includes('jewelry')) handleFloorChange(2);
+      else if (command.includes('accessories')) handleFloorChange(3);
+      setIsListening(false);
+    };
+    recognition.onerror = () => setIsListening(false);
   };
 
-  return (
-    <div className="pb-24 animate-fade-in">
-      <div className="relative">
-        <img src={product.image} alt={product.name} className="w-full h-auto object-cover" />
-        {product.has_ar_model && (
-          <button
-            onClick={() => setShowArModal(true)}
-            className="absolute top-4 left-4 flex items-center gap-2 bg-black bg-opacity-60 text-white py-1.5 px-3 rounded-full text-sm backdrop-blur-sm animate-pulse"
-          >
-            <Camera size={16} /> AR Try-On
-          </button>
-        )}
-      </div>
+  const handleFloorChange = (floorId) => {
+    if (floorId === activeFloor || isElevating) return;
+    setTargetFloor(floorId);
+    setIsElevating(true);
+    setTimeout(() => {
+      setActiveFloor(floorId);
+      setIsElevating(false);
+    }, 2500);
+  };
 
-      <div className="p-4 space-y-6">
-        <h1 className="text-3xl">{product.name}</h1>
-        <div className="flex justify-between items-center">
-          <p className={`text-2xl ${theme.accentText}`}>₹{product.price.toLocaleString('en-IN')}</p>
-          <div className="flex items-center gap-1">
-            <Star size={20} className="fill-current text-yellow-400" /> <span>{product.rating}</span>
-          </div>
-        </div>
+  const openAR = async () => {
+    setIsCameraOpen(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      if (videoRef.current) videoRef.current.srcObject = stream;
+    } catch (err) { console.error(err); }
+  };
 
-        {sortedLocalVendors.length > 0 && (
-          <Section title="Available Nearby" icon={<MapPin className={theme.accentText} />}>
-            <div className="space-y-3">
-              {sortedLocalVendors.map((vendor: any) => (
-                <div key={vendor.id} className={`p-3 rounded-lg ${theme.secondary} border border-white/10`}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3>{vendor.name}</h3>
-                        <ShieldCheck size={16} className="text-green-400" />
-                      </div>
-                      <div className="flex items-center gap-3 text-xs opacity-80 mt-1">
-                        <span className="flex items-center gap-1">
-                          <MapPin size={12} /> {vendor.distance_km} km
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Star size={12} /> {vendor.trust_score}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleAddToCart(vendor)}
-                      className={`${theme.primary} text-white text-sm py-2 px-4 rounded-lg active:scale-95 transition-transform`}
-                    >
-                      Buy Now
-                    </button>
-                  </div>
-                  <div className="mt-3 pt-3 border-t border-white/10 flex justify-between items-center text-sm">
-                    <p className="text-lg">₹{vendor.price.toLocaleString('en-IN')}</p>
-                    <div className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${theme.cardBg}`}>
-                      <Zap size={12} className={theme.accentText} /> {vendor.delivery_eta} Delivery
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Section>
-        )}
+  const closeAR = () => {
+    if (videoRef.current?.srcObject) videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+    setIsCameraOpen(false);
+  };
 
-        {recommended.length > 0 && (
-          <Section title="Complete The Look" icon={<Zap className={theme.accentText} />}>
-            <div className="flex overflow-x-auto space-x-4 pb-2 -mx-4 px-4 hide-scrollbar">
-              {recommended.map((rec: Product) => (
-                <div key={rec.id} className="w-36 flex-shrink-0">
-                  <ProductCard product={rec} theme={theme} onClick={() => viewProduct(rec)} />
-                </div>
-              ))}
-            </div>
-          </Section>
-        )}
-
-        <div className="flex flex-col gap-2 pt-4">
-          {product.bundle_tags && (
-            <button
-              onClick={() => setShowBundleSheet(true)}
-              className={`${theme.accent} text-black py-3 px-4 rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-transform`}
-            >
-              <Sparkles size={20} /> Buy Full Look
-            </button>
-          )}
-          <button
-            onClick={() => handleAddToCart()}
-            className={`${theme.secondary} ${theme.secondaryText} py-3 px-4 rounded-lg active:scale-95 transition-transform`}
-          >
-            Add to Cart from MITHAS
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const CartPage = ({ theme, cart, dispatch, glowPoints, setGlowPoints, logTransaction, setPage, showToast, findProduct }: any) => {
-  const isCartEmpty = cart.length === 0;
-  const cartItems = cart
-    .map((item: CartItem) => ({
-      ...item,
-      currentDetails: findProduct(item.id) || item,
-    }))
-    .filter((item: any) => item.currentDetails);
-
-  const subtotal = cartItems.reduce((acc: number, item: any) => acc + item.currentDetails.price * item.quantity, 0);
-  const shipping = 50;
-  const total = subtotal + shipping;
+  const captureLook = () => {
+    if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
+    const flash = document.createElement('div');
+    flash.className = 'fixed inset-0 bg-white z-[500] animate-ping';
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 200);
+  };
 
   const handleCheckout = () => {
-    if (isCartEmpty) return;
-
-    logTransaction({
-      items: cartItems.map((i: any) => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.currentDetails.price })),
-      total: total,
-    });
-
-    dispatch({ type: 'CLEAR_CART' });
-    setGlowPoints((prev: number) => prev + Math.floor(total / 100));
-    showToast('Order Placed Successfully!', <Award size={16} />);
-    setPage('profile');
+    setIsDroneDelivering(true);
+    setTimeout(() => {
+      setIsDroneDelivering(false);
+      dispatch({ type: 'CLEAR_CART' });
+      setPage('mall');
+    }, 5000);
   };
 
-  return (
-    <div className="p-4 animate-fade-in">
-      <h2 className="text-3xl mb-6 flex items-center gap-2">
-        <ShoppingCart size={28} className={theme.accentText} />
-        Your Cart
-      </h2>
+  const toggleWishlist = (id) => {
+    const next = new Set(wishlist);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setWishlist(next);
+  };
 
-      {isCartEmpty ? (
-        <div className={`text-center p-12 rounded-xl ${theme.secondary}`}>
-          <Package size={48} className={`mx-auto ${theme.accentText} opacity-70`} />
-          <p className="mt-4 text-xl opacity-80">Your MITHAS bag is empty</p>
-          <p className="text-sm opacity-60 mt-1">Add items to proceed to checkout.</p>
+  if (!gender) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-white font-sans">
+        <div className="w-24 h-24 bg-pink-500 rounded-[35px] flex items-center justify-center mb-8 shadow-[0_0_60px_rgba(236,72,153,0.4)] animate-pulse">
+          <Cpu size={48} />
         </div>
-      ) : (
-        <div className="space-y-4">
-          {cartItems.map((item: any) => (
-            <div key={item.id} className={`flex ${theme.secondary} p-3 rounded-xl shadow-md items-center gap-3`}>
-              <img src={item.currentDetails.image} alt={item.currentDetails.name} className="w-16 h-16 object-cover rounded-lg" />
-              <div className="flex-grow">
-                <h3 className="truncate">{item.currentDetails.name}</h3>
-                <p className="text-sm opacity-80">Vendor: {item.vendor}</p>
-                <p>₹{item.currentDetails.price.toLocaleString('en-IN')}</p>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-sm">Qty: {item.quantity}</span>
-                <button onClick={() => dispatch({ type: 'REMOVE_FROM_CART', payload: { id: item.id } })} className="text-red-400">
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </div>
-          ))}
-
-          <div className={`p-4 rounded-xl ${theme.secondary} shadow-md space-y-2`}>
-            <h3 className="text-lg mb-2">Order Summary</h3>
-            <div className="flex justify-between text-sm opacity-80">
-              <span>Subtotal</span>
-              <span>₹{subtotal.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between text-sm opacity-80">
-              <span>Shipping</span>
-              <span>₹{shipping.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between pt-2 border-t border-white/10 text-xl">
-              <span>Total</span>
-              <span className={theme.accentText}>₹{total.toLocaleString('en-IN')}</span>
-            </div>
-          </div>
-
-          <button
-            onClick={handleCheckout}
-            className={`w-full ${theme.primary} text-white py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform`}
-          >
-            Checkout Now (₹{total.toLocaleString('en-IN')})
+        <h1 className="text-5xl font-black tracking-tighter mb-2 italic text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-indigo-400">MITHAS 2076</h1>
+        <p className="text-slate-500 mb-12 text-center italic text-[10px] uppercase tracking-[0.5em]">Neural Link Protocol Active</p>
+        <div className="grid grid-cols-2 gap-8 w-full max-w-sm">
+          <button onClick={() => setGender('female')} className="aspect-square rounded-[45px] bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-4 hover:border-pink-500 transition-all group hover:bg-pink-500/5">
+            <span className="text-6xl group-hover:scale-110 transition-transform">👩</span>
+            <span className="font-black text-[10px] uppercase tracking-widest text-pink-500">FemNode</span>
+          </button>
+          <button onClick={() => setGender('male')} className="aspect-square rounded-[45px] bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-4 hover:border-blue-500 transition-all group hover:bg-blue-500/5">
+            <span className="text-6xl group-hover:scale-110 transition-transform">👨</span>
+            <span className="font-black text-[10px] uppercase tracking-widest text-blue-500">MaleNode</span>
           </button>
         </div>
-      )}
-    </div>
-  );
-};
-
-const ProfilePage = ({ theme, glowPoints, transactions, gender }: any) => (
-  <div className="p-4 animate-fade-in">
-    <h2 className="text-3xl mb-6">My Profile</h2>
-    <div className={`${theme.secondary} p-6 rounded-xl shadow-lg mb-6`}>
-      <div className="flex items-center gap-4 mb-4">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center text-2xl">
-          {gender === 'female' ? '👩' : '👨'}
-        </div>
-        <div>
-          <h3 className="text-xl">MITHAS User</h3>
-          <p className="text-sm opacity-70">Premium Member</p>
-        </div>
       </div>
-      <div className={`${theme.cardBg} p-4 rounded-lg flex items-center justify-between`}>
-        <div>
-          <p className="text-sm opacity-70">Glow Points</p>
-          <p className="text-2xl">{glowPoints.toLocaleString()}</p>
-        </div>
-        <Award size={32} className={theme.accentText} />
-      </div>
-    </div>
+    );
+  }
 
-    <Section title="Order History" icon={<Clock size={20} className={theme.accentText} />}>
-      {transactions.length === 0 ? (
-        <p className="text-center opacity-70 py-8">No orders yet</p>
-      ) : (
-        <div className="space-y-3">
-          {transactions.map((txn: any, idx: number) => (
-            <div key={idx} className={`${theme.secondary} p-4 rounded-xl`}>
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm opacity-70">{new Date(txn.date).toLocaleDateString()}</p>
-                  <p className="mt-1">{txn.items.length} items</p>
-                </div>
-                <p className="text-lg">₹{txn.total.toLocaleString('en-IN')}</p>
+  return (
+    <div className="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden selection:bg-pink-500/30">
+      <div className="max-w-md mx-auto relative min-h-screen shadow-2xl bg-slate-950 border-x border-white/5">
+        
+        {/* Universal Header */}
+        <header className="fixed top-0 left-0 right-0 max-w-md mx-auto bg-slate-950/80 backdrop-blur-3xl p-6 flex items-center justify-between z-50 border-b border-white/5">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setGender(null)} className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors">
+              <ArrowLeft size={18} className="text-pink-500" />
+            </button>
+            <div>
+              <h1 className="text-sm font-black tracking-tighter uppercase italic text-pink-500">MITHAS 2076</h1>
+              <div className="flex items-center gap-1 text-[8px] uppercase tracking-widest opacity-40">
+                <MapPin size={8} /> Karamadai Node
               </div>
             </div>
-          ))}
-        </div>
-      )}
-    </Section>
-  </div>
-);
+          </div>
+          <div className="flex items-center gap-3">
+             <div className="bg-pink-500/10 px-3 py-1.5 rounded-2xl border border-pink-500/20 flex items-center gap-2">
+                <Award size={12} className="text-pink-500" />
+                <span className="text-[10px] font-black">{glowPoints} GP</span>
+             </div>
+             <button onClick={() => setPage('cart')} className="relative">
+                <ShoppingCart size={20} className="text-slate-400" />
+                {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-pink-500 text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-bounce">{cart.length}</span>}
+             </button>
+          </div>
+        </header>
 
-const BottomNav = ({ theme, setPage, activePage, onSellerMode }: any) => {
-  const NavButton = ({ target, Icon, label, onClick }: any) => (
-    <button
-      onClick={onClick || (() => setPage(target))}
-      className={`flex flex-col items-center p-2 rounded-xl transition-colors ${activePage === target ? theme.accentText : 'opacity-70'}`}
-    >
-      <Icon size={24} className={activePage === target ? 'fill-current' : ''} />
-      <span className="text-xs mt-0.5">{label}</span>
-    </button>
-  );
+        {/* --- MAIN CONTENT --- */}
+        pt-24 px-6 pb-36">
+          {page === 'mall' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {/* Search */}
+              <div className="relative group">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-pink-500 transition-colors" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Search Neural Index..." 
+                  className="w-full bg-white/5 border border-white/10 rounded-[25px] py-4 pl-14 pr-6 text-sm focus:outline-none focus:border-pink-500 transition-all"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
 
-  return (
-    <nav className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto ${theme.secondary} shadow-2xl rounded-t-3xl border-t border-white/10 p-2 flex justify-around z-20`}>
-      <NavButton target="landing" Icon={Zap} label="Shop" />
-      <NavButton target="cart" Icon={ShoppingCart} label="Cart" />
-      <NavButton target="seller" Icon={Briefcase} label="Sell" onClick={onSellerMode} />
-      <NavButton target="profile" Icon={User} label="Profile" />
-    </nav>
-  );
-};
+              {/* Trending Banner */}
+              <div className="p-6 bg-gradient-to-br from-indigo-600 to-purple-800 rounded-[40px] relative overflow-hidden group shadow-lg">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><TrendingUp size={80} /></div>
+                <div className="relative z-10">
+                   <span className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-200">Weekly Top Nodes</span>
+                   <h3 className="text-2xl font-black mt-1 italic uppercase">Glow Trending</h3>
+                   <div className="flex gap-2 mt-4">
+                     <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-bold">#SilkSarees</span>
+                     <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-bold">#MetallicGlow</span>
+                   </div>
+                </div>
+              </div>
 
-// Modals
-const ARTryOnModal = ({ theme, product, onClose }: any) => (
-  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-end justify-center z-50 backdrop-blur-sm">
-    <div className={`w-full h-3/4 ${theme.secondary} p-6 rounded-t-3xl shadow-2xl relative animate-slide-up ${theme.text}`}>
-      <h3 className="text-2xl mb-4 flex items-center gap-2">
-        <Camera size={24} className={theme.accentText} /> AR Try-On
-      </h3>
-      <div className="flex flex-col items-center justify-center h-4/5 border border-dashed rounded-xl opacity-70">
-        <Camera size={48} />
-        <p className="mt-2">Simulating AR view of {product.name}</p>
-      </div>
-      <button onClick={onClose} className={`w-full mt-3 ${theme.primary} text-white py-3 rounded-xl`}>
-        Exit AR
-      </button>
-      <button onClick={onClose} className="absolute top-4 right-4">
-        <X size={24} />
-      </button>
-    </div>
-  </div>
-);
+              {/* Floor Switcher */}
+              <div className="flex gap-4 overflow-x-auto no-scrollbar py-2">
+                {MOCK_DATA.floors.map(f => (
+                  <button 
+                    key={f.id} 
+                    onClick={() => handleFloorChange(f.id)}
+                    className={`min-w-[120px] p-5 rounded-[35px] border transition-all flex flex-col items-center gap-2 ${activeFloor === f.id ? 'border-pink-500 bg-pink-500/10 shadow-[0_0_20px_rgba(236,72,153,0.1)]' : 'border-white/5 bg-white/5 opacity-50'}`}
+                  >
+                    <span className="text-3xl">{f.icon}</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest">{f.category}</span>
+                  </button>
+                ))}
+              </div>
 
-const BundlePreviewSheet = ({ theme, product, dispatch, onClose, showToast, findProduct }: any) => {
-  const bundleProducts = MOCK_DATA.products.filter(
-    p => product.recommendations?.includes(p.id) || p.id === product.id
-  );
-  const totalBundlePrice = bundleProducts.reduce((acc, p) => acc + p.price, 0);
+              {/* Products Feed */}
+              <div className="space-y-6">
+                 <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-black italic uppercase tracking-tighter">Current Level: {MOCK_DATA.floors[activeFloor].name}</h2>
+                    <div className="flex items-center gap-2 text-indigo-400">
+                      <Music size={12} className="animate-pulse" />
+                      <span className="text-[8px] font-bold uppercase">{MOCK_DATA.floors[activeFloor].music}</span>
+                    </div>
+                 </div>
 
-  const handleBuyBundle = () => {
-    dispatch({ type: 'ADD_BUNDLE_TO_CART', payload: bundleProducts });
-    showToast('Full Look Bundle added!', <Sparkles size={16} />);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-end justify-center z-50 backdrop-blur-sm">
-      <div className={`w-full ${theme.secondary} p-6 rounded-t-3xl shadow-2xl relative animate-slide-up ${theme.text}`}>
-        <button onClick={onClose} className={`absolute top-4 right-4 p-2 rounded-full ${theme.cardBg}`}>
-          <X size={24} />
-        </button>
-        <h3 className="text-2xl mb-4 flex items-center gap-2">
-          <Sparkles size={24} className={theme.accentText} /> Complete Look Bundle
-        </h3>
-        <div className="flex overflow-x-auto space-x-4 pb-4 border-b border-white/10 hide-scrollbar">
-          {bundleProducts.map(p => (
-            <div key={p.id} className="w-32 flex-shrink-0 text-center">
-              <img src={p.image} alt={p.name} className="w-full h-28 object-cover rounded-lg mb-1" />
-              <p className="text-sm truncate">{p.name}</p>
+                 <div className="grid grid-cols-2 gap-4">
+                   {MOCK_DATA.products
+                    .filter(p => (p.gender === gender || !p.gender) && p.floor === activeFloor)
+                    .map(p => (
+                      <div key={p.id} className="bg-white/5 border border-white/5 rounded-[35px] overflow-hidden group hover:border-pink-500/30 transition-all p-3">
+                        <div className="relative aspect-[4/5] rounded-[25px] overflow-hidden mb-3">
+                          <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                          <button 
+                            onClick={() => toggleWishlist(p.id)}
+                            className="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10"
+                          >
+                            <Heart size={14} className={wishlist.has(p.id) ? 'fill-pink-500 text-pink-500' : 'text-white'} />
+                          </button>
+                          {p.trending && <div className="absolute top-3 left-3 bg-red-500 text-[8px] font-black px-2 py-1 rounded-full uppercase italic">Trending</div>}
+                        </div>
+                        <h4 className="text-[10px] font-black uppercase truncate px-1">{p.name}</h4>
+                        <div className="flex justify-between items-center mt-2 px-1">
+                          <span className="text-pink-500 font-black text-sm italic">₹{p.price}</span>
+                          <button onClick={() => { setSelectedProduct(p); setPage('product'); }} className="p-2 bg-white/5 rounded-xl hover:bg-pink-500 transition-colors"><ChevronRight size={14} /></button>
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+              </div>
             </div>
-          ))}
-        </div>
-        <div className="mt-4 flex justify-between items-center">
-          <p className="text-lg opacity-80">Bundle Price:</p>
-          <p className={`text-3xl ${theme.accentText}`}>₹{totalBundlePrice.toLocaleString('en-IN')}</p>
-        </div>
-        <button
-          onClick={handleBuyBundle}
-          className={`w-full mt-6 ${theme.primary} text-white py-3 rounded-xl active:scale-[0.98]`}
-        >
-          Add Bundle to Cart
-        </button>
-      </div>
-    </div>
-  );
-};
+          )}
 
-const KYCModal = ({ theme, onClose, onStart }: any) => (
-  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-end justify-center z-50 backdrop-blur-sm">
-    <div className={`w-full ${theme.secondary} p-6 rounded-t-3xl shadow-2xl relative animate-slide-up ${theme.text}`}>
-      <h3 className="text-2xl mb-4 flex items-center gap-2">
-        <ShieldCheck size={24} className={theme.accentText} /> Become a Verified Seller
-      </h3>
-      <p className="opacity-80 mb-6">Complete KYC verification to list products in your shop.</p>
-      <button 
-        onClick={() => {
-          if (onStart) {
-            onStart();
-          }
-          onClose();
-        }} 
-        className={`w-full ${theme.primary} text-white py-3 rounded-xl`}
-      >
-        Start KYC Now
-      </button>
-      <button onClick={onClose} className="absolute top-4 right-4">
-        <X size={24} />
-      </button>
-    </div>
-  </div>
-);
+          {page === 'product' && selectedProduct && (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
+              <div className="relative h-[450px] rounded-[55px] overflow-hidden border border-white/10">
+                <img src={selectedProduct.image} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+                <button onClick={() => setPage('mall')} className="absolute top-6 left-6 p-4 bg-black/50 backdrop-blur-xl rounded-full border border-white/10 shadow-2xl"><X size={20} /></button>
+                
+                <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-pink-500">{selectedProduct.category}</span>
+                    <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none">{selectedProduct.name}</h2>
+                    <div className="flex items-center gap-2 mt-2">
+                       <Star size={12} className="text-yellow-500 fill-yellow-500" />
+                       <span className="text-xs font-bold">{selectedProduct.rating}</span>
+                       <span className="text-[10px] opacity-40 uppercase ml-2">Verified Seller: {selectedProduct.seller || 'MITHAS'}</span>
+                    </div>
+                  </div>
+                  <div className="text-3xl font-black italic text-pink-500">₹{selectedProduct.price}</div>
+                </div>
+              </div>
 
-const ToastNotification = ({ message, icon, theme }: any) => (
-  <div
-    className={`fixed bottom-20 left-1/2 transform -translate-x-1/2 p-3 ${theme.secondary} rounded-xl shadow-2xl z-50 flex items-center gap-2 animate-fade-in`}
-  >
-    {icon}
-    <span className="text-sm">{message}</span>
-  </div>
-);
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                   onClick={openAR}
+                   className="flex items-center justify-center gap-3 py-5 bg-indigo-500/10 border border-indigo-500/20 rounded-[30px] font-black text-[10px] uppercase tracking-widest hover:bg-indigo-500 transition-all"
+                >
+                  <ScanFace size={20} /> Neural Try-On
+                </button>
+                <button 
+                   className="flex items-center justify-center gap-3 py-5 bg-white/5 border border-white/10 rounded-[30px] font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all"
+                >
+                  <Share2 size={18} /> Social Uplink
+                </button>
+              </div>
 
-// --- MAIN APP ---
-export function MithasShopApp({ onNavigateBack, onNavigateToSellerDashboard }: MithasShopAppProps) {
-  const [gender, setGender] = useState<'female' | 'male' | null>(null);
-  const [page, setPage] = useState<Page>('landing');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [showKycModal, setShowKycModal] = useState(false);
-  const [showArModal, setShowArModal] = useState(false);
-  const [showBundleSheet, setShowBundleSheet] = useState(false);
-  const [glowPoints, setGlowPoints] = useState(2500);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [toast, setToast] = useState({ show: false, message: '', icon: null as any });
-  const [cart, dispatch] = useReducer(cartReducer, []);
+              {selectedProduct.bundleWith && (
+                <div className="p-6 bg-gradient-to-r from-pink-500/10 to-indigo-500/10 border border-white/10 rounded-[40px] relative overflow-hidden">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles size={16} className="text-pink-500 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Synergy Bundle Available</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                     <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-2xl">🎁</div>
+                     <div className="flex-grow">
+                        <p className="text-[10px] font-black uppercase opacity-60">Unlock Exclusive Pack</p>
+                        <p className="text-xs font-black italic">Save 20% on Neural Set</p>
+                     </div>
+                     <button className="px-6 py-2 bg-pink-500 rounded-xl text-[10px] font-black uppercase">View</button>
+                  </div>
+                </div>
+              )}
 
-  const THEMES = useMemo(() => getThemes(), []);
-  const timeOfDay = THEMES.isNight ? 'night' : 'day';
-  const theme = gender ? THEMES[gender][timeOfDay] : THEMES.female.night;
+              <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-6 bg-slate-950/90 backdrop-blur-3xl border-t border-white/5 z-50">
+                 <button 
+                  onClick={() => { dispatch({ type: 'ADD_TO_CART', payload: selectedProduct }); setPage('cart'); }}
+                  className="w-full py-6 bg-white text-black rounded-[35px] font-black uppercase tracking-[0.3em] text-sm shadow-[0_10px_40px_rgba(255,255,255,0.1)] active:scale-95 transition-transform"
+                 >
+                   Inject to Bag
+                 </button>
+              </div>
+            </div>
+          )}
 
-  useEffect(() => {
-    if (toast.show) {
-      const timer = setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast]);
+          {page === 'cart' && (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
+               <h2 className="text-4xl font-black italic uppercase tracking-tighter">Secure Bag</h2>
+               {cart.length === 0 ? (
+                 <div className="text-center py-20 opacity-20">
+                    <ShoppingBag size={80} className="mx-auto mb-6" />
+                    <p className="text-sm font-black uppercase tracking-widest">Bag is Empty</p>
+                 </div>
+               ) : (
+                 <div className="space-y-4">
+                    {cart.map(item => (
+                      <div key={item.id} className="p-5 bg-white/5 border border-white/5 rounded-[35px] flex items-center gap-5 group">
+                        <img src={item.image} className="w-20 h-20 rounded-2xl object-cover" />
+                        <div className="flex-grow">
+                          <h4 className="text-[10px] font-black uppercase">{item.name}</h4>
+                          <p className="text-pink-500 font-black italic">₹{item.price}</p>
+                          <div className="flex items-center gap-4 mt-2">
+                             <button onClick={() => dispatch({ type: 'UPDATE_QTY', id: item.id, delta: -1 })} className="p-1 hover:text-pink-500"><ChevronDown size={14}/></button>
+                             <span className="text-xs font-black font-mono">{item.quantity}</span>
+                             <button onClick={() => dispatch({ type: 'UPDATE_QTY', id: item.id, delta: 1 })} className="p-1 hover:text-pink-500"><ChevronUp size={14}/></button>
+                          </div>
+                        </div>
+                        <button onClick={() => dispatch({ type: 'REMOVE_FROM_CART', id: item.id })} className="p-3 bg-red-500/10 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16} /></button>
+                      </div>
+                    ))}
+                    
+                    <div className="mt-12 p-8 bg-white/5 rounded-[45px] border border-white/10 space-y-6">
+                       <div className="flex justify-between items-end">
+                         <span className="text-[10px] font-black uppercase opacity-40">Credits Required</span>
+                         <span className="text-3xl font-black italic">₹{cart.reduce((a, b) => a + (b.price * b.quantity), 0)}</span>
+                       </div>
+                       <button 
+                        onClick={handleCheckout}
+                        className="w-full py-6 bg-pink-500 rounded-[30px] font-black uppercase tracking-[0.2em] shadow-[0_15px_40px_rgba(236,72,153,0.3)] active:scale-95 transition-all"
+                       >
+                         Authorize Payment
+                       </button>
+                    </div>
+                 </div>
+               )}
+            </div>
+          )}
 
-  const showToast = (message: string, icon: React.ReactNode = <Bell size={16} />) =>
-    setToast({ show: true, message, icon });
+          {page === 'creators' && (
+            <div className="animate-in fade-in duration-500 space-y-8">
+               <h2 className="text-4xl font-black italic uppercase tracking-tighter">Creator Nodes</h2>
+               <div className="space-y-4">
+                 {MOCK_DATA.creators.map(c => (
+                   <div key={c.id} className="p-6 bg-white/5 border border-white/5 rounded-[40px] flex items-center gap-5">
+                      <div className="relative">
+                        <img src={c.avatar} className="w-16 h-16 rounded-full border-2 border-indigo-500 p-1" />
+                        {c.badge === 'Diamond' && <Crown size={14} className="absolute -bottom-1 -right-1 text-cyan-400" />}
+                      </div>
+                      <div className="flex-grow">
+                        <h4 className="text-sm font-black italic">{c.name}</h4>
+                        <p className="text-[10px] text-pink-500 font-bold">{c.username}</p>
+                        <p className="text-[8px] uppercase tracking-widest opacity-40 mt-1">{c.followers} Neural Followers</p>
+                      </div>
+                      <button className="px-5 py-2 bg-indigo-500 rounded-full text-[9px] font-black uppercase">Sync</button>
+                   </div>
+                 ))}
+               </div>
+            </div>
+          )}
+        </main>
 
-  const viewCategory = (c: string) => {
-    setSelectedCategory(c);
-    setPage('category');
-  };
+        {/* --- OVERLAYS --- */}
 
-  const viewProduct = (p: Product) => {
-    setSelectedProduct(p);
-    setPage('product');
-  };
-
-  const logTransaction = (details: any) => setTransactions(prev => [{ ...details, date: new Date() }, ...prev]);
-
-  const goBack = () => {
-    if (page === 'product') {
-      // Go back to category from product detail
-      setPage('category');
-    } else if (page === 'category') {
-      // Go back to landing from category
-      setPage('landing');
-    } else if (['cart', 'profile'].includes(page)) {
-      // Go back to landing from cart or profile
-      setPage('landing');
-    } else if (page === 'landing' && onNavigateBack) {
-      // Go back to main app from landing
-      onNavigateBack();
-    } else {
-      // Fallback: reset to gender selection
-      setGender(null);
-    }
-  };
-
-  const findProduct = useCallback((id: string) => MOCK_DATA.products.find(p => p.id === id), []);
-
-  const renderPage = () => {
-    const commonProps = { theme, gender, showToast, findProduct };
-
-    switch (page) {
-      case 'landing':
-        return (
-          <LandingPage
-            {...commonProps}
-            viewCategory={viewCategory}
-            viewProduct={viewProduct}
-            inventory={MOCK_DATA.products}
-            setShowKycModal={setShowKycModal}
-          />
-        );
-      case 'category':
-        return (
-          <CategoryPage {...commonProps} category={selectedCategory} viewProduct={viewProduct} inventory={MOCK_DATA.products} />
-        );
-      case 'product':
-        return (
-          <ProductDetailPage
-            {...commonProps}
-            product={selectedProduct}
-            dispatch={dispatch}
-            setShowArModal={setShowArModal}
-            setShowBundleSheet={setShowBundleSheet}
-            viewProduct={viewProduct}
-          />
-        );
-      case 'cart':
-        return (
-          <CartPage
-            {...commonProps}
-            cart={cart}
-            dispatch={dispatch}
-            glowPoints={glowPoints}
-            setGlowPoints={setGlowPoints}
-            logTransaction={logTransaction}
-            setPage={setPage}
-          />
-        );
-      case 'profile':
-        return <ProfilePage {...commonProps} glowPoints={glowPoints} transactions={transactions} />;
-      default:
-        return null;
-    }
-  };
-
-  if (!gender) return <GenderSelection onSelect={setGender} />;
-
-  return (
-    <div className={`min-h-screen w-full ${theme.bg} ${theme.text} transition-colors duration-500`}>
-      <div className="max-w-md mx-auto relative pb-20">
-        <Header theme={theme} goBack={goBack} cartCount={cart.length} timeOfDay={timeOfDay} onCartClick={() => setPage('cart')} />
-        <div className="pt-16">{renderPage()}</div>
-        <BottomNav 
-          theme={theme} 
-          setPage={setPage} 
-          activePage={page}
-          onSellerMode={() => {
-            if (onNavigateToSellerDashboard) {
-              onNavigateToSellerDashboard();
-            } else {
-              setShowKycModal(true);
-            }
-          }}
-        />
-
-        {toast.show && <ToastNotification message={toast.message} icon={toast.icon} theme={theme} />}
-        {showKycModal && <KYCModal 
-          theme={theme} 
-          onClose={() => setShowKycModal(false)} 
-          onStart={() => {
-            if (onNavigateToSellerDashboard) {
-              onNavigateToSellerDashboard();
-            }
-          }} 
-        />}
-        {showArModal && selectedProduct && <ARTryOnModal theme={theme} product={selectedProduct} onClose={() => setShowArModal(false)} />}
-        {showBundleSheet && selectedProduct && (
-          <BundlePreviewSheet
-            theme={theme}
-            product={selectedProduct}
-            dispatch={dispatch}
-            onClose={() => setShowBundleSheet(false)}
-            showToast={showToast}
-            findProduct={findProduct}
-          />
+        {/* AR UI */}
+        {isCameraOpen && (
+          <div className="fixed inset-0 z-[150] bg-black">
+            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover opacity-70" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <div className="w-72 h-[70vh] border border-white/10 rounded-[100px] relative">
+                 <div className="absolute inset-0 border-[20px] border-black/20 rounded-[100px]" />
+                 <div className="absolute top-1/4 left-0 right-0 h-0.5 bg-pink-500/30 animate-scan-line" />
+              </div>
+            </div>
+            <div className="absolute bottom-12 left-0 right-0 flex justify-center items-center gap-10 z-[160]">
+               <button onClick={closeAR} className="p-5 bg-white/10 backdrop-blur-3xl rounded-full border border-white/10"><X size={24} /></button>
+               <button onClick={captureLook} className="w-24 h-24 bg-white rounded-full border-[8px] border-pink-500/40 flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.2)] active:scale-90 transition-transform">
+                  <Camera size={36} className="text-black" />
+               </button>
+               <button className="p-5 bg-white/10 backdrop-blur-3xl rounded-full border border-white/10"><Share2 size={24} /></button>
+            </div>
+          </div>
         )}
+
+        {/* Voice UI */}
+        {isListening && (
+          <div className="fixed inset-0 z-[400] bg-indigo-600/20 backdrop-blur-2xl flex flex-col items-center justify-center animate-in fade-in duration-300">
+             <div className="w-32 h-32 bg-indigo-500 rounded-full flex items-center justify-center animate-pulse shadow-[0_0_80px_rgba(99,102,241,0.6)]">
+                <Mic size={50} />
+             </div>
+             <p className="mt-10 font-black uppercase tracking-[0.4em] text-xs italic">Awaiting Voice Input...</p>
+             <p className="text-[9px] mt-4 opacity-40 uppercase tracking-widest text-center">"Fashion Floor" • "Jewelry Floor" • "Makeup"</p>
+          </div>
+        )}
+
+        {/* Lift Animation */}
+        {isElevating && (
+          <div className="fixed inset-0 z-[300] bg-slate-950 flex flex-col items-center justify-center animate-in fade-in duration-500">
+            <div className="w-56 h-96 border-4 border-white/5 rounded-[60px] flex flex-col items-center justify-center gap-10 relative bg-white/5 backdrop-blur-3xl shadow-2xl">
+              <ChevronUp size={50} className="animate-bounce text-pink-500" />
+              <div className="text-9xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/20">
+                {targetFloor === 0 ? 'G' : targetFloor}
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.5em] opacity-40">Elevating Node</p>
+            </div>
+            <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10">
+               {[...Array(30)].map((_,i) => <div key={i} className="h-0.5 bg-white mb-6 animate-pulse" style={{ animationDelay: `${i*100}ms` }} />)}
+            </div>
+          </div>
+        )}
+
+        {/* Drone Delivery */}
+        {isDroneDelivering && (
+          <div className="fixed inset-0 z-[600] bg-slate-950 flex flex-col items-center justify-center p-10 text-center animate-in zoom-in duration-500">
+            <div className="w-full max-w-xs h-80 bg-white/5 rounded-[60px] border border-white/10 relative overflow-hidden mb-10 shadow-2xl">
+              <div className="absolute top-10 left-10 opacity-20"><Building2 size={32} /></div>
+              <div className="absolute bottom-10 right-10 text-pink-500"><Navigation2 size={32} /></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-drone-path">
+                 <div className="relative">
+                    <Cpu size={48} className="text-white animate-spin-slow" />
+                    <div className="absolute inset-0 bg-pink-500/20 blur-xl animate-pulse" />
+                 </div>
+              </div>
+            </div>
+            <h3 className="text-2xl font-black uppercase italic tracking-tighter">Drone Dispatched</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-pink-500 mt-3 animate-pulse">Neural Path Locked: Karamadai → Hub</p>
+          </div>
+        )}
+
+        {/* Global Nav */}
+        <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-950/90 backdrop-blur-3xl p-8 flex justify-around items-center z-40 border-t border-white/5 rounded-t-[60px]">
+          <button onClick={() => setPage('mall')} className={page === 'mall' ? 'text-pink-500' : 'text-slate-500 hover:text-white transition-colors'}><Zap size={26} /></button>
+          <button onClick={() => setPage('creators')} className={page === 'creators' ? 'text-pink-500' : 'text-slate-500 hover:text-white transition-colors'}><Users size={26} /></button>
+          <div className="relative -mt-16">
+             <button 
+              onClick={startVoiceCommand}
+              className={`w-18 h-18 rounded-[25px] flex items-center justify-center shadow-2xl border-[6px] border-slate-950 transition-all ${isListening ? 'bg-indigo-600 text-white animate-pulse' : 'bg-white text-black'}`}
+             >
+               <Mic size={28} />
+             </button>
+          </div>
+          <button onClick={() => setPage('cart')} className={page === 'cart' ? 'text-pink-500' : 'text-slate-500 hover:text-white transition-colors'}><ShoppingBag size={26} /></button>
+          <button className="text-slate-500 hover:text-white transition-colors"><User size={26} /></button>
+        </nav>
+
       </div>
 
       <style>{`
-        @keyframes fade-in {
-          0% { opacity: 0; transform: translateY(10px); }
-          100% { opacity: 1; transform: translateY(0); }
+        @keyframes scan-line { 0% { top: 20%; } 100% { top: 80%; } }
+        .animate-scan-line { animation: scan-line 2s linear infinite; }
+        @keyframes drone-path {
+          0% { transform: translate(-100px, -100px); opacity: 0; }
+          20% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: translate(100px, 100px); opacity: 0; }
         }
-        .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
-        @keyframes slide-up {
-          0% { transform: translateY(100%); }
-          100% { transform: translateY(0); }
-        }
-        .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .animate-drone-path { animation: drone-path 4s ease-in-out forwards; }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 3s linear infinite; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );
 }
+
+
+
+
+
+
+
+

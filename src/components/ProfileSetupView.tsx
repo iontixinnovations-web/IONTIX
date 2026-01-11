@@ -212,6 +212,20 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
       bio: profile.bio,
       city: profile.city,
       dob: profile.dob,
+      accountType: '',
+      industry: '',
+      profilePic: null,
+      gender: '',
+      businessName: '',
+      portfolioLink: '',
+      storeAddress: '',
+      specialties: '',
+      businessType: '',
+      experience: '',
+      operatingHours: '',
+      glowPoints: 0,
+      language: 'en',
+      profileCompleted: false
     });
 
     setIsLoading(false);
@@ -261,6 +275,14 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
       businessType: profile.businessType,
       experience: profile.experience,
       operatingHours: profile.operatingHours,
+      accountType: '',
+      profilePic: null,
+      gender: '',
+      storeAddress: '',
+      specialties: '',
+      glowPoints: 0,
+      language: 'en',
+      profileCompleted: false
     });
 
     setIsLoading(false);

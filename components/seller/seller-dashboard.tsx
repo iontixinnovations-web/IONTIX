@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Package,
   TrendingUp,
@@ -14,6 +15,7 @@ import {
   Eye,
   Edit,
   Trash2,
+  ArrowLeft,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -45,6 +47,7 @@ const statCards = [
 ]
 
 export function SellerDashboard() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState("overview")
   const [addProductOpen, setAddProductOpen] = useState(false)
   const { dashboard, isLoading } = useSellerDashboard()
@@ -84,9 +87,15 @@ export function SellerDashboard() {
     <div className="p-4 pb-24 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Seller Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Manage your store and products</p>
+        <div className="flex items-center">
+          <Button variant="ghost" onClick={() => router.push('/shop')} className="mr-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Shop
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Seller Dashboard</h1>
+            <p className="text-muted-foreground text-sm">Manage your store and products</p>
+          </div>
         </div>
         <Link href="/seller/settings">
           <Button variant="ghost" size="icon">

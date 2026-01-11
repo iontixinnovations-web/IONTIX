@@ -24,6 +24,24 @@ interface Product {
   views?: number;
 }
 
+const [sellerData, setSellerData] = useState(null);
+
+useEffect(() => {
+  const fetchShop = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data } = await supabase
+      .from('sellers')
+      .select('*')
+      .eq('user_id', user?.id)
+      .single();
+
+    if (data) {
+      setSellerData(data); // Ippo 'sellerData.shop_name' nu use pannalam
+    }
+  };
+  fetchShop();
+}, []);
+
 // Initial mock products for seller
 const INITIAL_PRODUCTS: Product[] = [
   {
@@ -572,6 +590,26 @@ export function SellerDashboardScreen({ onNavigateBack }: SellerDashboardScreenP
       });
     }
   };
+
+  const [shopDetails, setShopDetails] = useState(null);
+
+useEffect(() => {
+  const fetchRealData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data } = await supabase
+      .from('sellers')
+      .select('*')
+      .eq('user_id', user?.id)
+      .single();
+
+    if (data) setShopDetails(data);
+  };
+  fetchRealData();
+}, []);
+
+// HTML-la mock name irukkura idathula:
+// <h1>{shopDetails?.shop_name || "Loading..."}</h1>
+
 
   const handleDeleteProduct = (productId: string, productName: string) => {
     if (window.confirm(`Are you sure you want to delete "${productName}"?`)) {

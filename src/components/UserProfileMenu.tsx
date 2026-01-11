@@ -9,7 +9,7 @@ import {
   Calendar, Activity, Target, Flame, Moon, Sun, Download,
   Share2, BarChart3, Percent, AlertCircle, Check
 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, realtime } from '../lib/supabase';
 import { toast } from 'sonner@2.0.3';
 
 interface UserProfileMenuProps {
@@ -31,6 +31,123 @@ export function UserProfileMenu({
   onNavigateToCart,
   onNavigateToWishlist
 }: UserProfileMenuProps) {
+  // --- Backend action helpers ---
+  const handleAddFunds = async (amount = 500) => {
+    toast.info('Processing top-up...');
+    try {
+      if (isSupabaseConfigured() && userId) {
+        // Insert transaction and update wallet balance atomically if possible
+        await supabase.from('wallet_transactions').insert({ user_id: userId, amount, currency: 'INR', created_at: new Date().toISOString() });
+        // Update profiles.wallet_balance (best-effort)
+        await supabase.from('profiles').update({ wallet_balance: (walletBalance || 0) + amount }).eq('id', userId);
+        setWalletBalance(prev => prev + amount);
+        toast.success('Funds added to your wallet');
+      } else {
+        // Demo fallback
+        setWalletBalance(prev => prev + amount);
+        toast.success('Demo: Funds added locally');
+      }
+    } catch (e) {
+      console.warn('Add funds failed', e);
+      toast.error('Failed to add funds');
+    }
+  };
+
+  const handleToggleDroneOptIn = async () => {
+    try {
+      if (isSupabaseConfigured() && userId) {
+        const upd = !(userProfile?.drone_opt_in);
+        await supabase.from('profiles').update({ drone_opt_in: upd }).eq('id', userId);
+        setUserProfile(prev => ({ ...(prev||{}), drone_opt_in: upd }));
+        toast.success(`Drone delivery ${upd ? 'enabled' : 'disabled'}`);
+      } else {
+        setUserProfile(prev => ({ ...(prev||{}), drone_opt_in: !(prev?.drone_opt_in) }));
+        toast.info('Demo: Toggled drone opt-in');
+      }
+    } catch (e) { console.warn('Drone opt-in toggle failed', e); toast.error('Failed to update delivery preferences'); }
+  };
+
+  const handleOpenWarranty = async () => {
+    try {
+      if (isSupabaseConfigured() && userId) {
+        await supabase.from('warranty_accesses').insert({ user_id: userId, accessed_at: new Date().toISOString() });
+      }
+    } catch (e) { console.warn('warranty log failed', e); }
+    window.open('/warranty', '_blank');
+  };
+
+  const handleOpenReturnsSupport = async () => {
+    try {
+      if (isSupabaseConfigured() && userId) {
+        await supabase.from('support_requests').insert({ user_id: userId, type: 'returns', created_at: new Date().toISOString(), status: 'open' });
+      }
+    } catch (e) { console.warn('support request failed', e); }
+    window.open('https://support.mithas.glow', '_blank');
+  };
+
+  const [assistantEnabled, setAssistantEnabled] = useState(true);
+
+  const handleToggleAssistant = async () => {
+    try {
+      const newVal = !assistantEnabled;
+      setAssistantEnabled(newVal);
+      if (isSupabaseConfigured() && userId) {
+        await supabase.from('profiles').update({ assistant_enabled: newVal }).eq('id', userId);
+      }
+      toast.success(`AI suggestions ${newVal ? 'enabled' : 'disabled'}`);
+    } catch (e) { console.warn('toggle assistant failed', e); toast.error('Failed to update preference'); }
+  };
+
+  const handleToggleNotifications = async () => {
+    try {
+      const newVal = !(userProfile?.notifications_enabled);
+      setUserProfile(prev => ({ ...(prev||{}), notifications_enabled: newVal }));
+      if (isSupabaseConfigured() && userId) {
+        await supabase.from('profiles').update({ notifications_enabled: newVal }).eq('id', userId);
+      }
+      toast.success(`Notifications ${newVal ? 'enabled' : 'disabled'}`);
+    } catch (e) { console.warn('toggle notifications failed', e); toast.error('Failed to update notifications'); }
+  };
+
+  const handleToggleTheme = async () => {
+    try {
+      const newTheme = (userProfile?.theme_pref === 'neon') ? 'dark' : 'neon';
+      setUserProfile(prev => ({ ...(prev||{}), theme_pref: newTheme }));
+      if (isSupabaseConfigured() && userId) {
+        await supabase.from('profiles').update({ theme_pref: newTheme }).eq('id', userId);
+      }
+      toast.success(`Theme set to ${newTheme}`);
+    } catch (e) { console.warn('toggle theme failed', e); }
+  };
+
+  const handleReferNow = async () => {
+    try {
+      if (isSupabaseConfigured() && userId) {
+        await supabase.from('support_requests').insert({ user_id: userId, type: 'referral', payload: { action: 'generate_link' }, created_at: new Date().toISOString() });
+      }
+    } catch (e) { console.warn('refer failed', e); }
+    // demo share fallback
+    try { navigator.share && await navigator.share({ title: 'Join Mithas', text: 'Join Mithas 2076', url: window.location.href }); } catch (e) {}
+  };
+
+  const handleStartVoiceFromProfile = async () => {
+    try {
+      window.dispatchEvent(new CustomEvent('startVoiceFromProfile'));
+      if (isSupabaseConfigured() && userId) {
+        await supabase.from('support_requests').insert({ user_id: userId, type: 'voice_invocation', payload: { via: 'profile' }, created_at: new Date().toISOString() });
+      }
+    } catch (e) { console.warn('voice from profile failed', e); }
+  };
+
+  const handleOpenTerms = async () => {
+    try {
+      if (isSupabaseConfigured() && userId) {
+        await supabase.from('support_requests').insert({ user_id: userId, type: 'terms_access', created_at: new Date().toISOString() });
+      }
+    } catch (e) { console.warn('terms access log failed', e); }
+    window.open('/terms', '_blank');
+  };
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userProfile, setUserProfile] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -170,6 +287,49 @@ export function UserProfileMenu({
     };
 
     fetchUserData();
+
+    // realtime subscriptions: orders, cart_items, wishlists, ar_try_sessions
+    if (isSupabaseReady && userId) {
+      const refreshCounts = async () => {
+        try {
+          const { count: wishlistC } = await supabase.from('wishlists').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+          setWishlistCount(wishlistC || 0);
+        } catch (e) {}
+        try {
+          const { count: cartC } = await supabase.from('cart_items').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+          setCartCount(cartC || 0);
+        } catch (e) {}
+      };
+      refreshCounts();
+
+      const ordersChannel = realtime.subscribe('orders', (payload: any) => {
+        try {
+          const { eventType, new: newRecord, old: oldRecord } = payload;
+          if (eventType === 'INSERT') setOrders(prev => [ newRecord, ...prev ]);
+          else if (eventType === 'UPDATE') setOrders(prev => prev.map(o => o.id === newRecord.id ? newRecord : o));
+          else if (eventType === 'DELETE') setOrders(prev => prev.filter(o => o.id !== oldRecord.id));
+        } catch (e) { console.warn('orders realtime error', e); }
+      });
+
+      const cartChannel = realtime.subscribe('cart_items', (payload: any) => {
+        try { refreshCounts(); } catch (e) {}
+      });
+
+      const wishChannel = realtime.subscribe('wishlists', (payload: any) => {
+        try { refreshCounts(); } catch (e) {}
+      });
+
+      const tryChannel = realtime.subscribe('ar_try_sessions', (payload: any) => {
+        try { /* optionally refresh tryOnHistory */ } catch (e) {}
+      });
+
+      return () => {
+        try { realtime.unsubscribe(ordersChannel); } catch (e) {}
+        try { realtime.unsubscribe(cartChannel); } catch (e) {}
+        try { realtime.unsubscribe(wishChannel); } catch (e) {}
+        try { realtime.unsubscribe(tryChannel); } catch (e) {}
+      };
+    }
   }, [isOpen, userId, isSupabaseReady, glowPoints]);
 
   const handleLogout = async () => {
@@ -303,7 +463,7 @@ export function UserProfileMenu({
                   <div className="flex-grow">
                     <h4 className="text-sm font-black uppercase mb-1">AI Suggestion</h4>
                     <p className="text-xs opacity-80">"Wedding silk match found for you. Check Floor 1"</p>
-                    <button className="mt-3 px-4 py-2 bg-purple-500 rounded-full text-[9px] font-black uppercase">
+                    <button onClick={() => { if (onNavigateToOrders) onNavigateToOrders(); else setActiveTab('orders'); onClose(); }} className="mt-3 px-4 py-2 bg-purple-500 rounded-full text-[9px] font-black uppercase">
                       View Now
                     </button>
                   </div>
@@ -398,7 +558,15 @@ export function UserProfileMenu({
                   
                   <div className="flex gap-2 overflow-x-auto no-scrollbar">
                     {tryOnHistory.slice(0, 5).map((look) => (
-                      <div key={look.id} className="min-w-[100px] bg-white/5 rounded-2xl p-2 border border-white/10">
+                      <div key={look.id} onClick={async () => {
+                        toast.info('Opening saved look...');
+                        try {
+                          if (isSupabaseConfigured()) {
+                            await supabase.from('try_on_revisits').insert({ user_id: userId, try_on_id: look.id, revisited_at: new Date().toISOString() });
+                          }
+                        } catch (e) { console.warn('try-on revisit log failed', e); }
+                        onClose();
+                      }} className="min-w-[100px] cursor-pointer bg-white/5 rounded-2xl p-2 border border-white/10">
                         <img src={look.image} className="w-full h-20 object-cover rounded-xl mb-2" />
                         <p className="text-[8px] font-bold truncate">{look.product_name}</p>
                         <div className="flex items-center gap-1 mt-1">
@@ -429,22 +597,18 @@ export function UserProfileMenu({
                 <Ruler size={20} className="text-green-500" />
                 Bio-Sync
               </h3>
-              
+
               <div className="space-y-2">
                 <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-[25px]">
                   <div className="flex items-center gap-3 mb-3">
                     <Ruler size={20} className="text-green-400" />
                     <div className="flex-grow">
                       <p className="text-sm font-black">My Dimensions</p>
-                      <p className="text-[9px] opacity-60">
-                        {userProfile?.body_measurements ? 'Scanned & Synced' : 'Not scanned yet'}
-                      </p>
+                      <p className="text-[9px] opacity-60">{userProfile?.body_measurements ? 'Scanned & Synced' : 'Not scanned yet'}</p>
                     </div>
-                    {userProfile?.body_measurements && (
-                      <Check size={16} className="text-green-400" />
-                    )}
+                    {userProfile?.body_measurements && <Check size={16} className="text-green-400" />}
                   </div>
-                  
+
                   {userProfile?.body_measurements && (
                     <div className="grid grid-cols-2 gap-3 mt-3">
                       <div className="bg-white/5 rounded-xl p-2 text-center">
@@ -459,7 +623,15 @@ export function UserProfileMenu({
                   )}
                 </div>
 
-                <button className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
+                <button onClick={async () => {
+                  toast.info('Starting body scan...');
+                  try {
+                    if (isSupabaseConfigured() && userId) {
+                      await supabase.from('body_scans').insert({ user_id: userId, started_at: new Date().toISOString() });
+                    }
+                  } catch (e) { console.warn('body scan request failed', e); }
+                  try { window.dispatchEvent(new CustomEvent('bodyScanRequested', { detail: { userId } })); } catch (e) {}
+                }} className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
                   <div className="flex items-center gap-3">
                     <Scan size={20} className="text-cyan-400" />
                     <div className="text-left">
@@ -470,7 +642,7 @@ export function UserProfileMenu({
                   <ChevronRight size={20} className="opacity-40 group-hover:opacity-100" />
                 </button>
 
-                <button className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
+                <button onClick={handleToggleDroneOptIn} className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
                   <div className="flex items-center gap-3">
                     <Truck size={20} className="text-orange-400" />
                     <div className="text-left">
@@ -478,53 +650,9 @@ export function UserProfileMenu({
                       <p className="text-[9px] opacity-60">Delivery permissions</p>
                     </div>
                   </div>
-                  <ChevronRight size={20} className="opacity-40 group-hover:opacity-100" />
-                </button>
-              </div>
-            </div>
-
-            {/* ASSET & WALLET */}
-            <div>
-              <h3 className="text-lg font-black uppercase mb-4 flex items-center gap-2">
-                <Wallet size={20} className="text-yellow-500" />
-                Asset & Wallet
-              </h3>
-              
-              <div className="space-y-2">
-                <div className="p-4 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-[25px]">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <CreditCard size={20} className="text-yellow-400" />
-                      <div>
-                        <p className="text-sm font-black">Digital Wallet</p>
-                        <p className="text-[9px] opacity-60">GlowPay Balance</p>
-                      </div>
-                    </div>
-                    <p className="text-2xl font-black text-yellow-400">₹{walletBalance}</p>
-                  </div>
-                  <button className="w-full py-2 bg-yellow-500 rounded-xl text-xs font-black uppercase">
-                    Add Funds
-                  </button>
-                </div>
-
-                <button className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
-                  <div className="flex items-center gap-3">
-                    <FileText size={20} className="text-blue-400" />
-                    <div className="text-left">
-                      <p className="text-sm font-black">Warranty Vault</p>
-                      <p className="text-[9px] opacity-60">Bills & service history</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={20} className="opacity-40 group-hover:opacity-100" />
+                  <button className="px-3 py-2 bg-white/5 rounded-md text-xs">{userProfile?.drone_opt_in ? 'Enabled' : 'Configure'}</button>
                 </button>
 
-                <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-[25px] flex items-center gap-3">
-                  <Shield size={20} className="text-green-400" />
-                  <div className="flex-grow">
-                    <p className="text-sm font-black">Asset Protection</p>
-                    <p className="text-[9px] text-green-400">All assets secured ✔️</p>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -536,7 +664,7 @@ export function UserProfileMenu({
               </h3>
               
               <div className="space-y-2">
-                <button className="w-full p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-[25px] flex items-center justify-between hover:bg-indigo-500/20 transition-all group">
+                <button onClick={handleStartVoiceFromProfile} className="w-full p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-[25px] flex items-center justify-between hover:bg-indigo-500/20 transition-all group">
                   <div className="flex items-center gap-3">
                     <Mic size={20} className="text-indigo-400" />
                     <div className="text-left">
@@ -556,8 +684,8 @@ export function UserProfileMenu({
                         <p className="text-[9px] opacity-60">Smart recommendations</p>
                       </div>
                     </div>
-                    <button className="w-12 h-6 bg-green-500 rounded-full relative">
-                      <span className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
+                    <button onClick={handleToggleAssistant} className={`w-12 h-6 rounded-full relative ${assistantEnabled ? 'bg-green-500' : 'bg-white/5'}`}>
+                      <span className={`absolute right-1 top-1 w-4 h-4 bg-white rounded-full ${assistantEnabled ? '' : ''}`} />
                     </button>
                   </div>
                 </div>
@@ -572,7 +700,7 @@ export function UserProfileMenu({
               </h3>
               
               <div className="space-y-2">
-                <button className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
+                <button onClick={handleToggleTheme} className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
                   <div className="flex items-center gap-3">
                     <Palette size={20} className="text-pink-400" />
                     <div className="text-left">
@@ -583,7 +711,7 @@ export function UserProfileMenu({
                   <ChevronRight size={20} className="opacity-40 group-hover:opacity-100" />
                 </button>
 
-                <button className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
+                <button onClick={handleToggleNotifications} className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
                   <div className="flex items-center gap-3">
                     <Bell size={20} className="text-yellow-400" />
                     <div className="text-left">
@@ -640,7 +768,7 @@ export function UserProfileMenu({
                   <ChevronRight size={20} className="opacity-40 group-hover:opacity-100" />
                 </button>
 
-                <button className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
+                <button onClick={handleReferNow} className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
                   <div className="flex items-center gap-3">
                     <Gift size={20} className="text-pink-400" />
                     <div className="text-left">
@@ -670,7 +798,7 @@ export function UserProfileMenu({
               </h3>
               
               <div className="space-y-2">
-                <button className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
+                <button onClick={() => window.open('https://support.mithas.glow', '_blank')} className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
                   <div className="flex items-center gap-3">
                     <HelpCircle size={20} className="text-blue-400" />
                     <p className="text-sm font-black">Help Centre</p>
@@ -678,7 +806,7 @@ export function UserProfileMenu({
                   <ChevronRight size={20} className="opacity-40 group-hover:opacity-100" />
                 </button>
 
-                <button className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
+                <button onClick={handleOpenTerms} className="w-full p-4 bg-white/5 border border-white/10 rounded-[25px] flex items-center justify-between hover:bg-white/10 transition-all group">
                   <div className="flex items-center gap-3">
                     <FileText size={20} className="text-slate-400" />
                     <p className="text-sm font-black">Terms & Privacy Policy</p>

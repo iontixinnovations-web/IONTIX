@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/stores"
 import { useSellerStore } from "@/stores"
 import { useSellerProfile } from "@/hooks/use-seller"
+import { SellerVerifyForm } from "@/components/seller/seller-verify-form"
 import { Loader2 } from "lucide-react"
 
-export default function SellerPage() {
+export default function SellerVerifyPage() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuthStore()
   const { sellerProfile, setSellerProfile } = useSellerStore()
@@ -28,7 +29,7 @@ export default function SellerPage() {
     if (!profile) {
       // No seller profile, redirect to onboard
       setSellerProfile(null)
-      router.replace("/seller/onboard")
+      router.push("/seller/onboard")
     } else {
       const onboarded = !!profile.shop_name
       const verified = profile.is_verified
@@ -41,18 +42,21 @@ export default function SellerPage() {
       })
 
       if (!onboarded) {
-        router.replace("/seller/onboard")
-      } else if (!verified) {
-        router.replace("/seller/verify")
-      } else {
-        router.replace("/seller/dashboard")
+        router.push("/seller/onboard")
+      } else if (verified) {
+        router.push("/seller/dashboard")
       }
+      // If onboarded and not verified, stay here
     }
   }, [profile, isLoading, router, setSellerProfile])
 
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <Loader2 className="h-8 w-8 animate-spin" />
-    </div>
-  )
+  if (!isAuthenticated || isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  return <SellerVerifyForm />
 }

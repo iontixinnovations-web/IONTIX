@@ -268,10 +268,12 @@ export const useAuthStore = create<AuthState>()(
       }),
       {
         name: "mithas-auth-store",
-        partialize: () => ({}),
-          // Only persist minimal auth state
+        partialize: (state) => ({
           isAuthenticated: state.isAuthenticated,
+          user: state.user,
+          session: state.session,
         }),
+      }),
     
     { name: "AuthStore" },
   ),

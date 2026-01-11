@@ -75,17 +75,22 @@ authStore.setProfileCompleted(true);
 setCurrentView("home");
 }
 export default function App() {
+
 const authStore = useAuthStore();
 const profileCompleted = authStore.profileCompleted;
 const isAuthenticated = authStore.isAuthenticated;
 const authLoading = false;
 const [isInitialLoading, setIsInitialLoading] = useState(true);
-const [currentView, setCurrentView] = useState<View>("register");
+const [currentView, setCurrentView] = useState<View>(() => {
+  const savedView = localStorage.getItem("currentView") as View;
+  return savedView || "register";
+});
 const [identifier, setIdentifier] = useState("");
 const [identifierType, setIdentifierType] = useState<"email" | "phone">("email");
 const [chatInitialTab, setChatInitialTab] = useState<"contacts" | "messenger" | "artist">("contacts");
 const navigate = (view: View) => {
 setCurrentView(view);
+localStorage.setItem("currentView", view);
 window.history.pushState({ view }, "");
 };
 // 🎯 FIX 2: BROWSER BACK BUTTON SYNC (Back அழுத்தினால் ஸ்கிரீன் மாறும்)
@@ -102,17 +107,25 @@ try {
 const { data: { session } } = await supabase.auth.getSession();
 if (session) {
 const { data: profile } = await supabase.from('profiles').select('profile_completed').eq('id', session.user.id).single();
-if (profile?.profile_completed) {
-authStore.setProfileCompleted(true);
+authStore.setProfileCompleted(!!profile?.profile_completed);
+
+// If there's a saved view and it's valid for authenticated user, use it
+const savedView = localStorage.getItem("currentView") as View;
+const validViews: View[] = ["home", "mirror", "photoshoot", "chat", "reels", "shop", "innovators", "userprofile", "sellerdashboard"];
+if (savedView && validViews.includes(savedView)) {
+setCurrentView(savedView);
+} else if (profile?.profile_completed) {
 setCurrentView('home');
 } else {
-authStore.setProfileCompleted(false);
 setCurrentView('profile');
 }
 } else {
+// Not authenticated, clear saved view and go to register
+localStorage.removeItem("currentView");
 setCurrentView('register');
 }
 } catch (error) {
+localStorage.removeItem("currentView");
 setCurrentView('register');
 } finally {
 setIsInitialLoading(false);
@@ -265,5 +278,9 @@ return (
 
 );
 }
+
+
+
+
 
 

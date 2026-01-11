@@ -7,7 +7,7 @@ import {
   Volume2, Store, GalleryVertical, Tag, Wifi, Fingerprint, RefreshCcw, ThumbsUp, Lightbulb, Link, MessageCircle, Key, ArrowLeft, Home,
   Bell, Download, Globe
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { useAuthStore } from "../lib/store";
 const EMPTY_PROFILE = {
   name: "loading",
@@ -621,10 +621,10 @@ const EditProfileModal = ({ profile, setProfile, onClose }: {
   setProfile: (fn: (prev: any) => any) => void; 
   onClose: () => void 
 }) => {
-  const [name, setName] = useState(profile.name);
+  const [name, setName] = useState(profile.name || "");
   const [username, setUsername] = useState((profile?.username?.startsWith?.('@') ? profile.username.substring(1) : (profile?.username || 'user')));
-  const [bio, setBio] = useState(profile.bio);
-  const [location, setLocation] = useState(profile.location);
+  const [bio, setBio] = useState(profile.bio || "");
+  const [location, setLocation] = useState(profile.location || "");
   const [website, setWebsite] = useState(profile.website || "");
   const [pronouns, setPronouns] = useState(profile.pronouns || "");
   const [photoPreview, setPhotoPreview] = useState(profile.photoUrl || null);
@@ -1029,8 +1029,8 @@ useEffect(() => {
       name: storeProfile.full_name || storeProfile.name || prev.name,
       username: storeProfile.username || prev.username,
       bio: storeProfile.bio || prev.bio,
-      location: storeProfile.city || storeProfile.location || "Earth" ,
-      photoUrl: storeProfile.avatar_url || storeProfile.photoUrl || "",
+      location: storeProfile.city || storeProfile.location || prev.location || "Earth" ,
+      photoUrl: storeProfile.avatar_url || storeProfile.photoUrl || prev.photoUrl || "",
       
       wallet: {
         points: storeProfile.points || 0,
@@ -1466,7 +1466,7 @@ const coverStyle = {
         <EditProfileModal 
           profile={profile || initialProfileData}
           setProfile={setProfile} 
-          onClose={() => setIsEditModalOpen(false)} 
+          onClose={() => setShowModal(null)} 
         />
       )}
       {showModal === 'settings' && (

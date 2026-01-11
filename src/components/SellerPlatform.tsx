@@ -109,6 +109,17 @@ function AIGlowAssistantModal({ isOpen, onClose }: AIAssistantModalProps) {
   );
 }
 
+{activeView === 'setup' && (
+  <SellerSetupScreen 
+    onComplete={handleOnboardingComplete}
+    // Default values-ah setup screen-ku pass pandrom
+    initialValues={{
+      shopName: profileData?.name || '',
+      category: profileData?.industry || ''
+    }}
+  />
+)}
+
 // Bottom Navigation
 interface BottomNavProps {
   activeView: SellerView;
@@ -157,6 +168,25 @@ export function SellerPlatform({ onNavigateBack }: SellerPlatformProps) {
     setActiveView(view);
     console.log(`Seller Platform: Navigating to ${view}`);
   };
+
+const handleOnboardingComplete = async (formData: any) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { error } = await supabase
+      .from('sellers')
+      .upsert({
+        user_id: user.id,
+        shop_name: formData.shopName,
+        category: formData.category,
+        onboarding_status: 'completed',
+        updated_at: new Date().toISOString()
+      });
+
+    if (!error) {
+      setActiveView('dashboard');
+    }
+  }
+};
 
   const showAssistantButton = !['intro'].includes(activeView);
 
@@ -252,6 +282,7 @@ export function SellerPlatform({ onNavigateBack }: SellerPlatformProps) {
           </Suspense>
         </div>
 
+
         {/* Bottom Navigation */}
         <SellerBottomNav activeView={activeView} onNavigate={setCurrentView} />
 
@@ -274,3 +305,4 @@ export function SellerPlatform({ onNavigateBack }: SellerPlatformProps) {
     </div>
   );
 }
+export default SellerPlatform;
